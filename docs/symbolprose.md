@@ -71,11 +71,11 @@ In addition to the exposed grammar, user comments have no meaning to the system,
 
 Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolprose, may be defined in different ways. For this occasion, we choose a nested bulleted list explanation of how different Symbolprose elements behave:
 
-- A program is contained within the `(GRAPH ...)` clause  
-    - Variables
-        - Optionally declare named variables with a `(VAR …)` clause. Variables are recommended to be named with `<` prefix and `>` suffix to differentiate them from other atoms.
-        - Built‑in variable `<Params>` contains the incoming parameter S-expression. Before program start, `<` and `>` characters in the `<Params>` are automatically replaced with `&lt;` and `&gt;` strings, respectively.
-        - Builtin variable `<Result>` is where the final output S-expression must be stored. After program end, `&lt;` and `&gt;` substrings in the `<Result>` are automatically replaced with `<` and `>` characters, respectively.
+- A program is contained within the `(GRAPH ...)` clause
+    - Variables
+        - Optionally declare named variables with a `(VAR …)` clause. Variables are recommended to be named with `<` prefix and `>` suffix to differentiate them from other atoms.
+        - Built‑in variable `<Params>` contains the incoming parameter S-expression. Before program start, `<` and `>` characters in the `<Params>` are automatically replaced with `&lt;` and `&gt;` strings, respectively.
+        - Builtin variable `<Result>` is where the final output S-expression must be stored. After program end, `&lt;` and `&gt;` substrings in the `<Result>` are automatically replaced with `<` and `>` characters, respectively.
         
     - Edges
         - Each `(EDGE ...)` specifies a `SOURCE` node, optional `MID` instructions, and a `TARGET` node.
