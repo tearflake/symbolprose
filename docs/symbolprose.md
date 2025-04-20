@@ -103,7 +103,7 @@ Hopefully complete enough, the above structured explanation may serve as a seman
 
 We selected a few representative examples to study how Symbolprose behaves in different situations. These examples should be simple enough even for novice programmers to follow, thus revealing the Symbolprose execution process in practice. Nevertheless, the examples serve merely as an indication to possibilities that can be brought to light by an eye of more experienced programmers.
 
-### `<Params>` and `<Result>`variables
+#### `<Params>` and `<Result>`variables
 
 The first example takes any S-expression as a parameter, and simply returns it unchanged as a result:
 
@@ -126,7 +126,7 @@ The first example takes any S-expression as a parameter, and simply returns it u
 
 We used a variable `<X>` as a helper to show that `(MID ...)` clause can hold more than one instruction in a sequence.
 
-### test condition
+#### test condition
 
 The next example accepts an S-expression as a parameter. If the expression equals `ping`, the example returns `pong`. Otherwise it halts reporting a runtime error. To have the code functioning this way, we use `(TEST ...)` clause that either continues to the next instruction, or tries to fall to the next, non existing branch:
 
@@ -146,7 +146,7 @@ The next example accepts an S-expression as a parameter. If the expression equal
 )
 ```
 
-### multiple nodes
+#### multiple nodes
 
 Of course, we can have multiple edges from the same node. The following example takes `hi`, `bye`, or something else as a parameter. If the parameter is `hi`, it returns `greeting`. If the parameter is `bye`, it returns `farewell`. Otherwise, the code fallbacks returning `unknown` as a result:
 
@@ -185,7 +185,7 @@ Of course, we can have multiple edges from the same node. The following example 
 )
 ```
 
-### multiple intermediate nodes
+#### multiple intermediate nodes
 
 We can also have multiple intermediate nodes between `begin` and `end` nodes. In this example, if we pass `foo`, we get `alpha`. If we pass `bar`, we get `beta`. Otherwise, we get `unknown`:
 
@@ -248,7 +248,7 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
 )
 ```
 
-### looping
+#### looping
 
 Finally, we get to a more interesting example of reversing a list. To do this, we make use of `HEADL`, `TAILL`, and `CONSL` builtin functions:
 
@@ -319,3 +319,4 @@ This document covered the essential aspects of Symbolprose, including its syntax
 As a lightweight platform, Symbolprose may be useful in contexts that benefit from structured symbolic computation and deterministic evaluation. Its design is especially suited for serving as an intermediate representation or as part of a controlled execution environment.
 
     // under construction //
+
