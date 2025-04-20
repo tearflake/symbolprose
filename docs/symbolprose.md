@@ -18,7 +18,7 @@
 - [2. theoretical background](#2-theoretical-background)  
     - [2.1. syntax](#21-syntax)  
     - [2.2. semantics](#22-semantics)  
-- [3. practical examples](#3-practical-examples)  
+- [3. tutorial examples](#3-tutorial-examples)  
 - [4. conclusion](#4-conclusion)  
 
 ## 1. introduction
@@ -39,7 +39,7 @@ Likewise, Symbolprose resembles a directed graph structure where instruction exe
 
 Symbolprose is made Turing complete since it is intended to host a variety of code formations compiled from arbitrary higher level programming frameworks. It represents an abstract computing platform where we can extract any symbolic result from any symbolic parameters, depending on the programming code we run within Symbolprose definition bounds.
 
-### 2.1 syntax
+### 2.1. syntax
 
 In computer science, the syntax of a computer language is the set of rules that defines the combinations of symbols that are considered to be correctly structured statements or expressions in that language. Symbolprose code itself resembles a kind of S-expression. In Symbolprose code, the first list element to the left determines a type of a list. There are a few predefined list types used for coding, depicted by the following relaxed kind of Backus-Naur form syntax rules:
 
@@ -308,7 +308,7 @@ In this example, we are using several variables. `<Input>` is the list we're con
 - loop ends when `<Input>` equals `()`
 - in the final step, the value of <Acc> becomes <Result>
 
-Thus, when we pass `(1 2 3)`, we get `(3 2 1)`. Similarly, we can use `HEADA`, `TAILA`, and `CONSA` builtin functions to reverse a string (e.g. from `123` we get `321`).
+Thus, when we pass `(1 2 3)`, we get `(3 2 1)`. Similarly, we can use `HEADA`, `TAILA`, and `CONSA` builtin functions to reverse a string (e.g. from `123` to get `321`).
 
 ## 4. conclusion
 
