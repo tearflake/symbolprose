@@ -93,7 +93,7 @@ Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolpr
 
 - Built‑in Functions  
     - String (Atom) operations:  
-        - `(CONSA <a1> <a2>)` prepends atom `<a1> to atom `<a2>`  
+        - `(CONSA <a1> <a2>)` prepends atom `<a1>` to atom `<a2>`  
         - `(HEADA <a>)` returns the first character of the atom `<a>`  
         - `(TAILA <a>)` returns the rest of the atom `<a>`  
 
