@@ -15,7 +15,7 @@
 ## table of contents
 
 - [1. introduction](#1-introduction)  
-- [2. theoretical background](#2-theoretical-background)  
+- [2. theoretical background](#2-theoretical-background)
     - [2.1. syntax](#21-syntax)  
     - [2.2. semantics](#22-semantics)  
 - [3. tutorial examples](#3-tutorial-examples)  
