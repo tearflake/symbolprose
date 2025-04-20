@@ -9,7 +9,7 @@
 > **[intended audience]**  
 > Advanced users in imperative programming
 > 
-> **[abstract]**  
+> **[abstract]**  
 > ...Symbolprose resembles a directed graph structure where instruction execution flow follows the graph edges from beginning to ending node, possibly visiting intermediate nodes in between. The graph edges host instruction sequences that query and modify global variables to produce the final result relative to the passed parameters. The execution is deterministic where multiple edges from the same node may be tested canonically to succeed, repetitively transitioning to the next node in the entire execution sequence...
 
 ## table of contents
