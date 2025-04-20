@@ -74,8 +74,8 @@ Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolpr
 - A program is contained within the `(GRAPH ...)` clause
     - Variables
         - Optionally declare named variables with a `(VAR …)` clause. Variables are recommended to be named with `<` prefix and `>` suffix to differentiate them from other atoms.
-        - Built‑in variable `<Params>` contains the incoming parameter S-expression. Before program start, `<` and `>` characters in the `<Params>` are automatically replaced with `&lt;` and `&gt;` strings, respectively.
-        - Builtin variable `<Result>` is where the final output S-expression must be stored. After program end, `&lt;` and `&gt;` substrings in the `<Result>` are automatically replaced with `<` and `>` characters, respectively.
+        - Built‑in variable `<Params>` contains the incoming parameter S-expression. Before program starts, `<` and `>` characters in the `<Params>` are automatically replaced with `&lt;` and `&gt;` strings, respectively.
+        - Builtin variable `<Result>` is where the final output S-expression must be stored. After program ends, `&lt;` and `&gt;` substrings in the `<Result>` are automatically replaced with `<` and `>` characters, respectively.
     - Edges
         - Each `(EDGE ...)` specifies a `SOURCE` node, optional `MID` instructions, and a `TARGET` node.
             - Execution of a program follows the graph model. The graph begins at the special node `begin` and terminates at `end`.
