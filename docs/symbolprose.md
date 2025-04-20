@@ -1,7 +1,7 @@
 
     // under construction //
 
-# symbolprose
+# Symbolprose Specification
 
 > **[about document]**  
 > Introduction to *Symbolprose* imperative programming system operating on S-expressions.
@@ -9,8 +9,8 @@
 > **[intended audience]**  
 > Advanced users in imperative programming
 > 
-> **[Abstract]**  
-> ...Symbolprose resembles a directed graph structure where instruction execution flow follows the graph edges from beginning to ending node, possibly over intermediate nodes. The graph edges host instruction sequences that query and modify global variables to produce the final result relative to the passed parameters. The execution is deterministic where multiple edges from the same node may be tested canonically to succeed, repetitively transitioning to the next node in the total execution sequence...
+> **[abstract]**  
+> ...Symbolprose resembles a directed graph structure where instruction execution flow follows the graph edges from beginning to ending node, possibly visiting intermediate nodes in between. The graph edges host instruction sequences that query and modify global variables to produce the final result relative to the passed parameters. The execution is deterministic where multiple edges from the same node may be tested canonically to succeed, repetitively transitioning to the next node in the entire execution sequence...
 
 ## table of contents
 
@@ -35,7 +35,7 @@ Symbolprose is a computing platform that operates on S-expressions. S-expression
 
 Coding in Symbolprose is inspired by a structure of finite state machines (FSM). FSMs belong to a class of automata that can be in one of a finite set of states during the program execution. As the FSM program executes, the state transition process is guiding its current actions and responsiveness to outside events. FSMs are easily represented by directed graphs with nodes representing states and edges representing transitions. 
 
-Likewise, Symbolprose resembles a directed graph structure where instruction execution flow follows the graph edges from beginning to ending node, possibly over intermediate nodes. The graph edges host instruction sequences that query and modify global variables to produce the final result relative to the passed parameters. The execution is deterministic where multiple edges from the same node may be tested canonically to succeed, repetitively transitioning to the next node in the total execution sequence.
+Likewise, Symbolprose resembles a directed graph structure where instruction execution flow follows the graph edges from beginning to ending node, possibly visiting intermediate nodes in between. The graph edges host instruction sequences that query and modify global variables to produce the final result relative to the passed parameters. The execution is deterministic where multiple edges from the same node may be tested canonically to succeed, repetitively transitioning to the next node in the entire execution sequence.
 
 Symbolprose is made Turing complete since it is intended to host a variety of code formations compiled from arbitrary higher level programming frameworks. It represents an abstract computing platform where we can extract any symbolic result from any symbolic parameters, depending on the programming code we run within Symbolprose definition bounds.
 
@@ -69,7 +69,7 @@ In addition to the exposed grammar, user comments have no meaning to the system,
 
 ### 2.2. semantics
 
-Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolprose, may be defined in different ways. For this occasion, we choose a nested bulleted list explanation of how different Symbolprose elements behave:
+Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolprose, may be defined in different ways. For this occasion, we choose a nested bulleted list explanation of how different Symbolprose code elements behave:
 
 - A program is contained within the `(GRAPH ...)` clause
     - Variables
