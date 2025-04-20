@@ -71,31 +71,36 @@ In addition to the exposed grammar, user comments have no meaning to the system,
 
 Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolprose, may be defined in different ways. For this occasion, we choose a nested bulleted list explanation of how different Symbolprose elements behave:
 
-- A program is contained within the `(GRAPH ...)` clause  
-  - Variables  
-    - Optionally declare named variables with a `(VAR …)` clause. Variables are recommended to be named with `<` prefix and `>` suffix to differentiate them from other atoms.  
-    - Built‑in variable `<Params>` contains the incoming parameter S-expression. Before program start, `<` and `>` characters in the `<Params>` are automatically replaced with `&lt;` and `&gt;` strings, respectively.  
-    - Builtin variable `<Result>` is where the final output S-expression must be stored. After program end, `&lt;` and `&gt;` substrings in the `<Result>` are automatically replaced with `<` and `>` characters, respectively.  
-  - Edges  
-    - Each `(EDGE ...)` specifies a `SOURCE` node, optional `MID` instructions, and a `TARGET` node.  
-      - Execution of a program follows the graph model. The graph begins at the special node `begin` and terminates at `end`.  
-      - Instructions (in `MID`)  
-        - `(TEST <expr1> <expr2>)`  
-          - Evaluate `<expr1>` and `<expr2>` and compare them.  
-          - If equal, continue; otherwise skip to the next outgoing edge.  
-        - `(HOLD <var> <expr>)`  
-          - Evaluate `<expr>` and bind its value to `<var>`.  
-    - Outgoing edges from a given node are evaluated in declaration order; the first whose `TEST`s all pass is taken.  
-    - If there are no more edges to try, execution halts with an error.  
-- Built‑in Functions  
-  - String (Atom) operations:  
-    - `(CONSA <a1> <a2>)` prepends atom `<a1>` to atom `<a2>`  
-    - `(HEADA <a>)` returns the first character of the atom `<a>`  
-    - `(TAILA <a>)` returns the rest of the atom `<a>`  
-  - List (S‑expression) operations:  
-    - `(CONSL <l1> <l2>)` prepends element `<l1>` to the list `<l2>`  
-    - `(HEADL <l>)` returns the first element of the list `<l>`  
-    - `(TAILL <l>)` returns the remaining elements of the list `<l>`  
+- A program is contained within the `(GRAPH ...)` clause
+    - Variables
+        - Optionally declare named variables with a `(VAR …)` clause. Variables are recommended to be named with `<` prefix and `>` suffix to differentiate them from other atoms.
+        - Built‑in variable `<Params>` contains the incoming parameter S-expression. Before program start, `<` and `>` characters in the `<Params>` are automatically replaced with `&lt;` and `&gt;` strings, respectively.
+        - Builtin variable `<Result>` is where the final output S-expression must be stored. After program end, `&lt;` and `&gt;` substrings in the `<Result>` are automatically replaced with `<` and `>` characters, respectively.
+        
+    - Edges
+        - Each `(EDGE ...)` specifies a `SOURCE` node, optional `MID` instructions, and a `TARGET` node.
+            - Execution of a program follows the graph model. The graph begins at the special node `begin` and terminates at `end`.
+            - Instructions (in `MID`)
+                - `(TEST <expr1> <expr2>)`
+                    - Evaluate `<expr1>` and `<expr2>` and compare them.
+                    - If equal, continue; otherwise skip to the next outgoing edge.
+
+                - `(HOLD <var> <expr>)`
+                    - Evaluate `<expr>` and bind its value to `<var>`.
+
+        - Outgoing edges from a given node are evaluated in declaration order; the first whose `TEST`s all pass is taken.
+        - If there are no more edges to try, execution halts with an error.
+
+- Built‑in Functions
+    - String (Atom) operations:
+        - `(CONSA <a1> <a2>)` prepends atom `<a1> to atom `<a2>`
+        - `(HEADA <a>)` returns the first character of the atom `<a>`
+        - `(TAILA <a>)` returns the rest of the atom `<a>`
+
+    - List (S‑expression) operations:
+        - `(CONSL <l1> <l2>)` prepends element `<l1>` to the list `<l2>`
+        - `(HEADL <l>)` returns the first element of the list `<l>`
+        - `(TAILL <l>)` returns the remaining elements of the list `<l>`
 
 Hopefully complete enough, the above structured explanation may serve as a semantic specification of Symbolprose. But since the theory is only one side of a medal in a learning process, the rest of this exposure deals with various examples of coding in Symbolprose, possibly completing the definition process.
 
@@ -319,4 +324,3 @@ This document covered the essential aspects of Symbolprose, including its syntax
 As a lightweight platform, Symbolprose may be useful in contexts that benefit from structured symbolic computation and deterministic evaluation. Its design is especially suited for serving as an intermediate representation or as part of a controlled execution environment.
 
     // under construction //
-
