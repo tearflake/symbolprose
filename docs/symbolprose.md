@@ -83,7 +83,6 @@ Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolpr
                 - `(TEST <expr1> <expr2>)`  
                     - Evaluate `<expr1>` and `<expr2>` and compare them.  
                     - If equal, continue; otherwise skip to the next outgoing edge.  
-
                 - `(HOLD <var> <expr>)`  
                     - Evaluate `<expr>` and bind its value to `<var>`.  
         - Outgoing edges from a given node are evaluated in declaration order; the first whose `TEST`s all pass is taken.  
