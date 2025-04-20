@@ -3,10 +3,10 @@
 
 # Symbolprose Specification
 
-> **[about document]**  
+> **[about document]**  
 > Introduction to *Symbolprose* imperative programming system operating on S-expressions.
 >
-> **[intended audience]**  
+> **[intended audience]**  
 > Advanced users in imperative programming
 > 
 > **[abstract]**  
