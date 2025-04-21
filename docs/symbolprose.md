@@ -54,7 +54,7 @@ In computer science, the syntax of a computer language is the set of rules that 
 
 To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the Symbolprose language.
 
-As an interleaved part of the above grammar, anywhere inside `<ANY>` elements, there may be placed any of the six builtin functions:  
+As an intertwined part of the above grammar, anywhere inside `<ANY>` elements, there may be placed any of the six builtin functions:  
 
 ```
 (CONSA <ATOMIC> <ATOMIC>) -> <RESULT>
