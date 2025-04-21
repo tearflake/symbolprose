@@ -40,7 +40,7 @@ and there is only six builtin functions used only for sub-structural transformat
 
 Given these elements, in spite of being very minimalistic framework, *Symbolprose* is computationally complete.
 
-## example program code
+## "Hello world!" example
 
 To get a glimpse on how a *Symbolverse* program code looks like, we bring a "Hello world!" example:
 
