@@ -12,7 +12,7 @@ _**tags:** s-expression, intermediate-level, imperative-programming_
 
 An **S-expression** (Symbolic Expression) is a simple and uniform way of representing nested data or code using parentheses to denote lists and atoms, commonly used in Lisp programming and symbolic computation.
 
-_**Symbolprose**_ is a symbolic, imperative programming framework. Its main purpose is to serve as a compiling target for higher level programming languages. Symbolprose instruction control flow is inspired by finite state machines. The code in Symbolprose resembles a directed graph whose nodes represent checkpoints in program execution, while edges host variable accessing instructions.
+_**Symbolprose**_ is a S-expression based, imperative programming framework. Its main purpose is to serve as a compiling target for higher level programming languages. Symbolprose instruction control flow is inspired by finite state machines. The code in Symbolprose resembles a directed graph whose nodes represent checkpoints in program execution, while edges host variable accessing instructions.
 
 ## minimalistic approach
 
