@@ -16,7 +16,7 @@ _**Symbolprose**_ is a symbolic, imperative programming framework. Its main purp
 
 ## minimalistic approach
 
-The entire grammar of *Symbolverse* code files fits into only six lines of relaxed BNF code:
+The entire grammar of Symbolprose code files fits into only six lines of relaxed BNF code:
 
 ```
       <start> := (GRAPH (VAR <ATOMIC>+)? <edge>+)
