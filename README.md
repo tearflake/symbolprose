@@ -58,7 +58,6 @@ To get a glimpse on how a Symbolprose program code looks like, we bring the "Hel
 There are a some resources about Symbolprose to check out:
 - Explore code examples at [online playground](https://tearflake.github.io/symbolprose/playground/).
 - Read the [Symbolprose specification](https://tearflake.github.io/symbolprose/docs/symbolprose).
-
 - ...
 
 ## licensing
