@@ -209,9 +209,12 @@ var Interpreter = (
             env["Params"] = params;
             
             let node = "begin"; 
-            let guard = 0, GUARD_LIMIT = 1_000_000;
+            let guard = 0, GUARD_LIMIT = 10000;
             while (true) {
-                if (guard++ > GUARD_LIMIT) throw new Error("Guard limit exceeded");
+                if (guard++ > GUARD_LIMIT) {
+                    throw new Error("Guard limit exceeded");
+                }
+                
                 let edgeSet = edges[node];
                 if (!edgeSet) {
                     throw new Error (`Uknown node: ${node}`);
