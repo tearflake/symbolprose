@@ -44,25 +44,22 @@ Symbolprose is made Turing complete since it is intended to host a variety of co
 In computer science, the syntax of a computer language is the set of rules that defines the combinations of symbols that are considered to be correctly structured statements or expressions in that language. Symbolprose code itself resembles a kind of S-expression. In Symbolprose code, the first list element to the left determines a type of a list. There are a few predefined list types used for coding, depicted by the following relaxed kind of Backus-Naur form syntax rules:
 
 ```
-          <start> := (GRAPH (VAR <ATOMIC>+)? <edge>+)
+<start>       := (GRAPH <edge>+)
 
-           <edge> := (EDGE (SOURCE <ATOMIC>) (MID <instruction>+)? (TARGET <ATOMIC>))
+<edge>        := (EDGE (SOURCE <ATOMIC>) (MID <instruction>+)? (TARGET <ATOMIC>))
 
-    <instruction> := (TEST <ANY> <ANY>)
-                   | (HOLD <ATOMIC> <ANY>)
+<instruction> := (TEST <ANY> <ANY>)
+               | (HOLD <ATOMIC> <ANY>)
 ```
 
 To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the Symbolprose language.
 
-As an intertwined part of the above grammar, anywhere inside `<ANY>` elements, there may be placed any of the six builtin functions:  
+As an intertwined part of the above grammar, anywhere inside `<ANY>` S-expression, there may be placed any of the three builtin functions:  
 
 ```
-(CONSA <ATOMIC> <ATOMIC>) -> <RESULT>
-(HEADA <ATOMIC>)          -> <RESULT>
-(TAILA <ATOMIC>)          -> <RESULT>
-(CONSL <ANY> <ANY>)       -> <RESULT>
-(HEADL <ANY>)             -> <RESULT>
-(TAILL <ANY>)             -> <RESULT>
+("prepend" <ANY> <LIST>) -> <LIST>
+("first" <LIST>)         -> <ANY>
+("rest" <LIST>)          -> <LIST>
 ```
 
 In addition to the exposed grammar, user comments have no meaning to the system, but may be descriptive to readers, and may be placed wherever a whitespace is expected. Single line comments are embraced within a pair of `/` symbols. Multiline comments are embraced within an odd number of `/` symbols placed at the same whitespace distance from the beginning of line, so that everything in between is considered as a comment.
@@ -73,29 +70,24 @@ Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolpr
 
 - A program is contained within the `(GRAPH ...)` clause
     - Variables
-        - Optionally declare named variables with a `(VAR …)` clause. Variables are recommended to be named with `<` prefix and `>` suffix to differentiate them from other atoms.
-        - Built‑in variable `<Params>` contains the incoming parameter S-expression. Before program starts, `<` and `>` characters in the `<Params>` are automatically replaced with `&lt;` and `&gt;` strings, respectively.
-        - Builtin variable `<Result>` is where the final output S-expression must be stored. After program ends, `&lt;` and `&gt;` substrings in the `<Result>` are automatically replaced with `<` and `>` characters, respectively.
+        - Optionally declare named variables with a `(VAR …)` clause. Variables are recommended to be named with `` prefix and `` suffix with capital first alphabetic letter, to differentiate them from other atoms.
+        - Built‑in variable `Params` contains the incoming parameter S-expression. Before program starts, `` and `` characters in the `Params` are automatically replaced with `&lt;` and `&gt;` strings, respectively.
+        - Builtin variable `Result` is where the final output S-expression must be stored. After program ends, `&lt;` and `&gt;` substrings in the `Result` are automatically replaced with `` and `` characters, respectively.
     - Edges
         - Each `(EDGE ...)` specifies a `SOURCE` node, optional `MID` instructions, and a `TARGET` node.
             - Execution of a program follows the graph model. The graph begins at the special node `begin` and terminates at `end`.
             - Instructions (in `MID`)
-                - `(TEST <expr1> <expr2>)`
-                    - Evaluate `<expr1>` and `<expr2>` and compare them.
+                - `(TEST expr1 expr2)`
+                    - Evaluate `expr1` and `expr2` and compare them.
                     - If equal, continue; otherwise skip to the next outgoing edge.
-                - `(HOLD <var> <expr>)`
-                    - Evaluate `<expr>` and bind its value to `<var>`.
+                - `(HOLD var expr)`
+                    - Evaluate `expr` and bind its value to `var`.
         - Outgoing edges from a given node are evaluated in declaration order; the first whose `TEST`s all pass is taken.
         - If there are no more edges to try, execution halts with an error.
-- Built‑in Functions
-    - String (Atom) operations:
-        - `(CONSA <a1> <a2>)` prepends atom `<a1>` to atom `<a2>`
-        - `(HEADA <a>)` returns the first character of the atom `<a>`
-        - `(TAILA <a>)` returns the rest of the atom `<a>`
-    - List (S‑expression) operations:
-        - `(CONSL <l1> <l2>)` prepends element `<l1>` to the list `<l2>`
-        - `(HEADL <l>)` returns the first element of the list `<l>`
-        - `(TAILL <l>)` returns the remaining elements of the list `<l>`
+- Built‑in Functions:
+    - `(prepend elem lst)` prepends element `elem` to the list `lst`
+    - `(first lst)` returns the first element of the list `lst`
+    - `(rest lst)` returns the remaining elements of the list `lst`
 
 Hopefully complete enough, the above structured explanation may serve as a semantic specification of Symbolprose. But since the theory is only one side of a medal in a learning process, the rest of this exposure deals with various examples of coding in Symbolprose, possibly completing the definition process.
 
@@ -103,28 +95,27 @@ Hopefully complete enough, the above structured explanation may serve as a seman
 
 We selected a few representative examples to study how Symbolprose behaves in different situations. These examples should be simple enough even for novice programmers to follow, thus revealing the Symbolprose execution process in practice. Nevertheless, the examples serve merely as an indication to possibilities that can be brought to light by an eye of more experienced programmers.
 
-#### `<Params>` and `<Result>`variables
+#### `Params` and `Result`variables
 
 The first example takes any S-expression as a parameter, and simply returns it unchanged as a result:
 
 ```
 (
     GRAPH
-    (VAR <X>)
     (
         EDGE
         (SOURCE begin)
         (
             MID
-            (HOLD <X> <Params>)
-            (HOLD <Result> <X>)
+            (HOLD X Params)
+            (HOLD Result X)
         )
         (TARGET end)
     )
 )
 ```
 
-We used a variable `<X>` as a helper to show that `(MID ...)` clause can hold more than one instruction in a sequence.
+We used a variable `X` as a helper to show that `(MID ...)` clause can hold more than one instruction in a sequence.
 
 #### test condition
 
@@ -138,8 +129,8 @@ The next example accepts an S-expression as a parameter. If the expression equal
         (SOURCE begin)
         (
             MID
-            (TEST <Params> ping)
-            (HOLD <Result> pong)
+            (TEST Params ping)
+            (HOLD Result pong)
         )
         (TARGET end)
     )
@@ -159,8 +150,8 @@ Of course, we can have multiple edges from the same node. The following example 
         (SOURCE begin)
         (
             MID
-            (TEST <Params> hi)
-            (HOLD <Result> greeting)
+            (TEST Params hi)
+            (HOLD Result greeting)
         )
         (TARGET end)
     )
@@ -170,8 +161,8 @@ Of course, we can have multiple edges from the same node. The following example 
         (SOURCE begin)
         (
             MID
-            (TEST <Params> bye)
-            (HOLD <Result> farewell)
+            (TEST Params bye)
+            (HOLD Result farewell)
         )
         (TARGET end)
     )
@@ -179,7 +170,7 @@ Of course, we can have multiple edges from the same node. The following example 
     (
         EDGE
         (SOURCE begin)
-        (MID (HOLD <Result> unknown))
+        (MID (HOLD Result unknown))
         (TARGET end)
     )
 )
@@ -192,13 +183,12 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
 ```
 (
     GRAPH
-    (VAR <X>)
 
     /Step 1: Load input/
     (
         EDGE
         (SOURCE begin)
-        (MID (HOLD <X> <Params>))
+        (MID (HOLD X Params))
         (TARGET check)
     )
 
@@ -206,14 +196,14 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     (
         EDGE
         (SOURCE check)
-        (MID (TEST <X> foo))
+        (MID (TEST X foo))
         (TARGET match-foo)
     )
 
     /Step 3: Check for bar/
     (
         EDGE (SOURCE check)
-        (MID (TEST <X> bar))
+        (MID (TEST X bar))
         (TARGET match-bar)
     )
 
@@ -227,7 +217,7 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     /Step 5: Match case foo/
     (
         EDGE (SOURCE match-foo)
-        (MID (HOLD <Result> alpha))
+        (MID (HOLD Result alpha))
         (TARGET end)
     )
 
@@ -235,14 +225,14 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     (
         EDGE
         (SOURCE match-bar)
-        (MID (HOLD <Result> beta))
+        (MID (HOLD Result beta))
         (TARGET end)
     )
 
     /Step 7: Default case/
     (
         EDGE (SOURCE fallback)
-        (MID (HOLD <Result> unknown))
+        (MID (HOLD Result unknown))
         (TARGET end)
     )
 )
@@ -250,31 +240,31 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
 
 #### looping
 
-Finally, we get to a more interesting example of reversing a list. To do this, we make use of `HEADL`, `TAILL`, and `CONSL` builtin functions:
+Finally, we get to a more interesting example of reversing a list. To do this, we make use of `first`, `rest`, and `prepend` builtin functions:
 
 ```
 (
     GRAPH
-    (VAR <Input> <Acc> <Head> <Tail>)
+    (VAR Input Acc Head Tail)
 
-    /Load <Input> and initialize accumulator/
+    /Load Input and initialize accumulator/
     (
         EDGE
         (SOURCE begin)
         (
             MID
-            (HOLD <Input> <Params>)
-            (HOLD <Acc> ())
+            (HOLD Input Params)
+            (HOLD Acc ())
         )
         (TARGET loop)
     )
 
-    /Loop condition: if <Input> is not (), process one element/
+    /Loop condition: if Input is not (), process one element/
     (
         EDGE
         (SOURCE loop)
-        (MID (TEST <Input> ()))
-        (TARGET done) /If <Input> is (), go to done/
+        (MID (TEST Input ()))
+        (TARGET done) /If Input is (), go to done/
     )
     
     (
@@ -282,33 +272,33 @@ Finally, we get to a more interesting example of reversing a list. To do this, w
         (SOURCE loop)
         (
             MID
-            (HOLD <Head> (HEADL <Input>))
-            (HOLD <Tail> (TAILL <Input>))
-            (HOLD <Acc> (CONSL <Head> <Acc>))
-            (HOLD <Input> <Tail>)
+            (HOLD Head (first Input))
+            (HOLD Tail (rest Input))
+            (HOLD Acc (prepend Head Acc))
+            (HOLD Input Tail)
         )
         (TARGET loop) /Continue looping/
     )
 
-    /Final step: store reversed <Result>/
+    /Final step: store reversed Result/
     (
         EDGE
         (SOURCE done)
-        (MID (HOLD <Result> <Acc>))
+        (MID (HOLD Result Acc))
         (TARGET end)
     )
 )
 ```
 
-In this example, we are using several variables. `<Input>` is the list we're consuming. `<Acc>` is the accumulator we build the reversed list into. In the code, there is a loop going on where in each iteration we do:
+In this example, we are using several variables. `Input` is the list we're consuming. `Acc` is the accumulator we build the reversed list into. In the code, there is a loop going on where in each iteration we do:
 
-- extract the `<Head>`
-- push it to the front of `<Acc>`
-- update `<Input>` to its `<Tail>`
-- loop ends when `<Input>` equals `()`
-- in the final step, the value of <Acc> becomes <Result>
+- extract the `Head`
+- push it to the front of `Acc`
+- update `Input` to its `Tail`
+- loop ends when `Input` equals `()`
+- in the final step, the value of Acc becomes Result
 
-Thus, when we pass `(1 2 3)`, we get `(3 2 1)`. Similarly, we can use `HEADA`, `TAILA`, and `CONSA` builtin functions to reverse a string (e.g. from `123` to get `321`).
+Thus, when we pass `(1 2 3)`, we get `(3 2 1)`.
 
 ## 4. conclusion
 

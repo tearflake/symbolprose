@@ -2,9 +2,9 @@
 // under construction //
 ```
 
-# symbolprose v0.0.0
+# symbolprose v0.1.0
 
-_**tags:** s-expression, intermediate-level, imperative-programming_
+_**tags:** s-expression, intermediate-representation, imperative-programming_
 
 ## about the project
 
@@ -19,7 +19,7 @@ _**Symbolprose**_ is a S-expression based, imperative programming framework. Its
 The entire grammar of Symbolprose code files fits into only six lines of relaxed BNF code:
 
 ```
-      <start> := (GRAPH (VAR <ATOMIC>+)? <edge>+)
+      <start> := (GRAPH <edge>+)
 
        <edge> := (EDGE (SOURCE <ATOMIC>) (MID <instruction>+)? (TARGET <ATOMIC>))
 
@@ -27,15 +27,12 @@ The entire grammar of Symbolprose code files fits into only six lines of relaxed
                | (HOLD <ATOMIC> <ANY>)
 ```
 
-and there is only six builtin functions used only for sub-structural transformations:
+and there are only three builtin functions used only for sub-structural transformations:
 
 ```
-(CONSL <ANY> <ANY>)       -> <RESULT>
-(HEADL <ANY>)             -> <RESULT>
-(TAILL <ANY>)             -> <RESULT>
-(CONSA <ATOMIC> <ATOMIC>) -> <RESULT>
-(HEADA <ATOMIC>)          -> <RESULT>
-(TAILA <ATOMIC>)          -> <RESULT>
+(prepend <ANY> <ANY>) -> <RESULT>
+(first <ANY>)         -> <RESULT>
+(rest <ANY>)          -> <RESULT>
 ```
 
 Given these elements, in spite of being very minimalistic framework, Symbolprose is computationally complete.
@@ -50,7 +47,7 @@ To get a glimpse on how a Symbolprose program code looks like, we bring the "Hel
     (
         EDGE
         (SOURCE begin)
-        (MID (HOLD <Result> "Hello world!"))
+        (MID (HOLD Result "Hello world!"))
         (TARGET end)
     )
 )
