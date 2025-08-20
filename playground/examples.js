@@ -147,7 +147,6 @@ foo
 `
 (
    GRAPH
-   (VAR Input Acc Head Tail)
 
    /Load Input and initialize accumulator/
    (

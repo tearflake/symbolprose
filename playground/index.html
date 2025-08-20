@@ -397,7 +397,7 @@
                 setTimeout (function (){
                     var output = Interpreter.run (program, input1.getValue ());
                     if (output.err) {
-                        output1.value = "input:\n" + output.err + (output.pos ? " at " + "(" + (output.pos.y + 1) + ", " + (output.pos.x + 1) + ")" : "") + (rules.found ? ", found: " + rules.found : "");
+                        output1.value = "input:\n" + output.err + (output.pos ? " at " + "(" + (output.pos.y + 1) + ", " + (output.pos.x + 1) + ")" : "") + (program.found ? ", found: " + program.found : "");
                         document.getElementById("tm").innerHTML = "";
                     } else {
                         var trewritten = (Date.now () - tm)
