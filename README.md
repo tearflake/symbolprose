@@ -21,7 +21,7 @@ The entire grammar of Symbolprose code files fits into only six lines of relaxed
 ```
       <start> := (GRAPH <edge>+)
 
-       <edge> := (EDGE (SOURCE <ATOMIC>) (MID <instruction>+)? (TARGET <ATOMIC>))
+       <edge> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
 
 <instruction> := (TEST <ANY> <ANY>)
                | (HOLD <ATOMIC> <ANY>)
