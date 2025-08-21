@@ -8,8 +8,8 @@ examples = {
         (SOURCE begin)
         (
             INSTR
-            (HOLD X Params)
-            (HOLD Result X)
+            (ASGN X Params)
+            (ASGN Result X)
         )
         (TARGET end)
     )
@@ -30,7 +30,7 @@ xyz
         (
             INSTR
             (TEST Params ping)
-            (HOLD Result pong)
+            (ASGN Result pong)
         )
         (TARGET end)
     )
@@ -52,7 +52,7 @@ ping
         (
             INSTR
             (TEST Params hi)
-            (HOLD Result greeting)
+            (ASGN Result greeting)
         )
         (TARGET end)
     )
@@ -63,7 +63,7 @@ ping
         (
             INSTR
             (TEST Params bye)
-            (HOLD Result farewell)
+            (ASGN Result farewell)
         )
         (TARGET end)
     )
@@ -71,7 +71,7 @@ ping
     (
         EDGE
         (SOURCE begin)
-        (INSTR (HOLD Result unknown))
+        (INSTR (ASGN Result unknown))
         (TARGET end)
     )
 )
@@ -90,7 +90,7 @@ hi
     (
         EDGE
         (SOURCE begin)
-        (INSTR (HOLD X Params))
+        (INSTR (ASGN X Params))
         (TARGET check)
     )
 
@@ -120,7 +120,7 @@ hi
     /Step 5: Match case foo/
     (
         EDGE (SOURCE match-foo)
-        (INSTR (HOLD Result alpha))
+        (INSTR (ASGN Result alpha))
         (TARGET end)
     )
 
@@ -128,7 +128,7 @@ hi
     (
         EDGE
         (SOURCE match-bar)
-        (INSTR (HOLD Result beta))
+        (INSTR (ASGN Result beta))
         (TARGET end)
     )
 
@@ -136,7 +136,7 @@ hi
     (
         EDGE
         (SOURCE fallback)
-        (INSTR (HOLD Result unknown))
+        (INSTR (ASGN Result unknown))
         (TARGET end)
     )
 )
@@ -156,8 +156,8 @@ foo
         (SOURCE begin)
         (
             INSTR
-            (HOLD Input Params)
-            (HOLD Acc ())
+            (ASGN Input Params)
+            (ASGN Acc ())
         )
         (TARGET loop)
     )
@@ -176,10 +176,10 @@ foo
         (SOURCE loop)
         (
             INSTR
-            (HOLD Head (FIRST Input))
-            (HOLD Tail (REST Input))
-            (HOLD Acc (PREPEND Head Acc))
-            (HOLD Input Tail)
+            (ASGN Head (FIRST Input))
+            (ASGN Tail (REST Input))
+            (ASGN Acc (PREPEND Head Acc))
+            (ASGN Input Tail)
         )
         (TARGET loop) /Continue looping/
     )
@@ -188,7 +188,7 @@ foo
     (
         EDGE
         (SOURCE done)
-        (INSTR (HOLD Result Acc))
+        (INSTR (ASGN Result Acc))
         (TARGET end)
     )
 )
@@ -196,6 +196,61 @@ foo
 "reverse-input":
 `
 (1 2 3 4)
+`,
+
+"element-of":
+`
+(
+    GRAPH
+
+    /Setup variables/
+    (
+        EDGE
+        (SOURCE begin)
+        (
+            INSTR
+            (ASGN Element (FIRST Params))
+            (ASGN List (FIRST (REST Params)))
+        )
+        (TARGET loop)
+    )
+    
+    /Loop condition: if Input is ()/
+    (
+        EDGE
+        (SOURCE loop)
+        (
+            INSTR
+            (TEST List ())
+            (ASGN Result false)
+        )
+        (TARGET end) /done/
+    )
+    
+    /Loop condition: if Element is found/
+    (
+        EDGE
+        (SOURCE loop)
+        (
+            INSTR
+            (TEST Element (FIRST List))
+            (ASGN Result true)
+        )
+        (TARGET end) /done/
+    )
+    
+    /Fallback: Process next element in list/
+    (
+        EDGE
+        (SOURCE loop)
+        (INSTR (ASGN List (REST List)))
+        (TARGET loop) /Continue looping/
+    )
+)
+`,
+"element-of-input":
+`
+(2 (1 2 3 4))
 `
 }
 
