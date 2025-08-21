@@ -14,40 +14,32 @@ var Interpreter = (
     (function () {
         "use strict";
         
-        /** Deep structural equality for arrays and atoms */
         function deepEqual(a, b) {
             if (a === b) return true;
             if (Array.isArray(a) && Array.isArray(b)) {
-              if (a.length !== b.length) return false;
-              for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false;
-              return true;
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false;
+                return true;
             }
-            // Distinguish +0/-0, NaN
             return (Number.isNaN (a) && Number.isNaN (b)) ? true : false;
         }
 
-        /** Clone JS value composed of arrays/atoms */
         function deepClone(v) {
             if (Array.isArray (v)) return v.map (deepClone);
             return v;
         }
 
-        /** Evaluate an expression under environment */
         function evalExpr(expr, env) {
-          // Atoms: numbers/booleans/null/undefined treated as-is.
             if (!Array.isArray(expr)) {
                 if (typeof expr === "string") {
-                    // Variable reference if present in env; else treat as string literal.
                     if (Object.prototype.hasOwnProperty.call(env, expr)) return env[expr];
                     return expr;
                 }
                 return expr;
             }
           
-            // Literal list: evaluate each element (so lists can contain expressions)
             expr = expr.map(e => evalExpr(e, env));
             
-            // Lists: could be builtin call or literal list.
             if (Array.isArray (expr)) {
                 const head = expr[0];
                 if (typeof head === "string" && BUILTINS[head]) {
@@ -95,27 +87,26 @@ var Interpreter = (
             }
             else {
                 program = pProgram;
-                let compiled = [];
+                let compiledGraph = [];
                 for (let i = 1; i < program.length; i++) {
                     let name = program[i][1][1];
-                    if (!compiled [name] && !Object.prototype.hasOwnProperty.call(compiled, name)) {
-                        compiled[name] = [];
+                    if (!compiledGraph [name] && !Object.prototype.hasOwnProperty.call(compiledGraph, name)) {
+                        compiledGraph[name] = [];
                     }
                     
-                    compiled[name].push (program[i]);
+                    compiledGraph[name].push (program[i]);
                 }
                 
-                return compiled;
+                return compiledGraph;
             }
         }
 
-        function run (edges, params) {
+        function run (graph, params) {
             params = Sexpr.parse(params);
             if (params.err) {
                 return params;
             }
 
-            //const edges = compile (program);
             const env = Object.create(null);
             env["Params"] = params;
             
@@ -126,13 +117,13 @@ var Interpreter = (
                     throw new Error("Guard limit exceeded");
                 }
                 
-                let edgeSet = edges[node];
-                if (!edgeSet) {
+                let edges = graph[node];
+                if (!edges) {
                     throw new Error (`Uknown node: ${node}`);
                 }
 
-                loop1: for (let i = 0; i < edgeSet.length; i++) {
-                    let edge = edgeSet[i];
+                loop1: for (let i = 0; i < edges.length; i++) {
+                    let edge = edges[i];
                     
                     if (edge.length === 4) {
                         node = edge[3][1];

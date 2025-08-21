@@ -27,7 +27,7 @@ The entire grammar of Symbolprose code files fits into only six lines of relaxed
                | (HOLD <ATOMIC> <ANY>)
 ```
 
-and there are only three builtin functions used only for sub-structural transformations:
+and there are only three builtin functions used for sub-structural transformations:
 
 ```
 (PREPEND <ANY> <LIST>) -> <RESULT>
