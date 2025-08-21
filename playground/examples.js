@@ -7,7 +7,7 @@ examples = {
         EDGE
         (SOURCE begin)
         (
-            MID
+            INSTR
             (HOLD X Params)
             (HOLD Result X)
         )
@@ -28,7 +28,7 @@ xyz
         EDGE
         (SOURCE begin)
         (
-            MID
+            INSTR
             (TEST Params ping)
             (HOLD Result pong)
         )
@@ -50,7 +50,7 @@ ping
         EDGE
         (SOURCE begin)
         (
-            MID
+            INSTR
             (TEST Params hi)
             (HOLD Result greeting)
         )
@@ -61,7 +61,7 @@ ping
         EDGE
         (SOURCE begin)
         (
-            MID
+            INSTR
             (TEST Params bye)
             (HOLD Result farewell)
         )
@@ -71,7 +71,7 @@ ping
     (
         EDGE
         (SOURCE begin)
-        (MID (HOLD Result unknown))
+        (INSTR (HOLD Result unknown))
         (TARGET end)
     )
 )
@@ -90,7 +90,7 @@ hi
     (
         EDGE
         (SOURCE begin)
-        (MID (HOLD X Params))
+        (INSTR (HOLD X Params))
         (TARGET check)
     )
 
@@ -98,14 +98,15 @@ hi
     (
         EDGE
         (SOURCE check)
-        (MID (TEST X foo))
+        (INSTR (TEST X foo))
         (TARGET match-foo)
     )
 
     /Step 3: Check for bar/
     (
-        EDGE (SOURCE check)
-        (MID (TEST X bar))
+        EDGE
+        (SOURCE check)
+        (INSTR (TEST X bar))
         (TARGET match-bar)
     )
 
@@ -119,7 +120,7 @@ hi
     /Step 5: Match case foo/
     (
         EDGE (SOURCE match-foo)
-        (MID (HOLD Result alpha))
+        (INSTR (HOLD Result alpha))
         (TARGET end)
     )
 
@@ -127,14 +128,15 @@ hi
     (
         EDGE
         (SOURCE match-bar)
-        (MID (HOLD Result beta))
+        (INSTR (HOLD Result beta))
         (TARGET end)
     )
 
     /Step 7: Default case/
     (
-        EDGE (SOURCE fallback)
-        (MID (HOLD Result unknown))
+        EDGE
+        (SOURCE fallback)
+        (INSTR (HOLD Result unknown))
         (TARGET end)
     )
 )
@@ -146,48 +148,49 @@ foo
 "reverse":
 `
 (
-   GRAPH
+    GRAPH
 
-   /Load Input and initialize accumulator/
-   (
-     EDGE
-     (SOURCE begin)
-     (
-       MID
-       (HOLD Input Params)
-       (HOLD Acc ())
-     )
-     (TARGET loop)
-   )
+    /Load Input and initialize accumulator/
+    (
+        EDGE
+        (SOURCE begin)
+        (
+            INSTR
+            (HOLD Input Params)
+            (HOLD Acc ())
+        )
+        (TARGET loop)
+    )
 
-   /Loop condition: if Input is not (), process one element/
-   (
-     EDGE
-     (SOURCE loop)
-     (MID (TEST Input ()))
-     (TARGET done) /If Input is (), go to done/
-   )
-   
-   (
-     EDGE
-     (SOURCE loop)
-     (
-       MID
-       (HOLD Head (first Input))
-       (HOLD Tail (rest Input))
-       (HOLD Acc (prepend Head Acc))
-       (HOLD Input Tail)
-     )
-     (TARGET loop) /Continue looping/
-   )
+    /Loop condition: if Input is ()/
+    (
+        EDGE
+        (SOURCE loop)
+        (INSTR (TEST Input ()))
+        (TARGET done) /go to done/
+    )
+    
+    /Fallback: Process one element/
+    (
+        EDGE
+        (SOURCE loop)
+        (
+            INSTR
+            (HOLD Head (FIRST Input))
+            (HOLD Tail (REST Input))
+            (HOLD Acc (PREPEND Head Acc))
+            (HOLD Input Tail)
+        )
+        (TARGET loop) /Continue looping/
+    )
 
-   /Final step: store reversed Result/
-   (
-     EDGE
-     (SOURCE done)
-     (MID (HOLD Result Acc))
-     (TARGET end)
-   )
+    /Final step: store reversed Result/
+    (
+        EDGE
+        (SOURCE done)
+        (INSTR (HOLD Result Acc))
+        (TARGET end)
+    )
 )
 `,
 "reverse-input":

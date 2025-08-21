@@ -44,45 +44,19 @@ var Interpreter = (
                 return expr;
             }
           
+            // Literal list: evaluate each element (so lists can contain expressions)
             expr = expr.map(e => evalExpr(e, env));
+            
             // Lists: could be builtin call or literal list.
-          
             if (Array.isArray (expr)) {
                 const head = expr[0];
                 if (typeof head === "string" && BUILTINS[head]) {
-                    return BUILTINS[head](expr.slice(1), env);
+                    return BUILTINS[head](expr.slice(1));
                 }
             }
           
-            // Literal list: evaluate each element (so lists can contain expressions)
-            return expr;//.map(e => evalExpr(e, env));
+            return expr;
         }
-
-        const BUILTINS = {
-          // (prepend elem lst) -> list
-          prepend(args, env) {
-            if (args.length !== 2) throw new Error("prepend expects 2 args");
-            const elem = evalExpr(args[0], env);
-            const lst = evalExpr(args[1], env);
-            if (!Array.isArray(lst)) throw new Error("prepend: second arg must be a list");
-            return [deepClone(elem), ...lst.map(deepClone)];
-          },
-          // (first lst) -> any
-          first(args, env) {
-            if (args.length !== 1) throw new Error("first expects 1 arg");
-            const lst = evalExpr(args[0], env);
-            if (!Array.isArray(lst)) throw new Error("first: arg must be a list");
-            return lst[0];
-          },
-          // (rest lst) -> list
-          rest(args, env) {
-            if (args.length !== 1) throw new Error("rest expects 1 arg");
-            const lst = evalExpr(args[0], env);
-            if (!Array.isArray(lst)) throw new Error("rest: arg must be a list");
-            return lst.slice(1);
-          }
-        };
-
 
         function compile (program) {
             var syntax = `
@@ -93,8 +67,8 @@ var Interpreter = (
                     (RULE (READ (EXP expressions)) (WRITE (EXP (expression expressions))))
                     (RULE (READ (EXP expressions)) (WRITE (EXP (expression ())         )))
 
-                    (RULE (READ (EXP expression)) (WRITE (EXP (\\EDGE ((\\SOURCE (ATOMIC ())) ((\\MID instructions) ((\\TARGET (ATOMIC ())) ())))))))
-                    (RULE (READ (EXP expression)) (WRITE (EXP (\\EDGE ((\\SOURCE (ATOMIC ())) ((\\TARGET (ATOMIC ())) ()))))))
+                    (RULE (READ (EXP expression)) (WRITE (EXP (\\EDGE ((\\SOURCE (ATOMIC ())) ((\\INSTR instructions) ((\\TARGET (ATOMIC ())) ())))))))
+                    (RULE (READ (EXP expression)) (WRITE (EXP (\\EDGE ((\\SOURCE (ATOMIC ())) ((\\TARGET (ATOMIC ())) ())))                       )))
                     
                     (RULE (READ (EXP instructions)) (WRITE (EXP (instruction instructions))))
                     (RULE (READ (EXP instructions)) (WRITE (EXP (instruction ())          )))

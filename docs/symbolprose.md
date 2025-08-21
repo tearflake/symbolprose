@@ -46,7 +46,7 @@ In computer science, the syntax of a computer language is the set of rules that 
 ```
 <start>       := (GRAPH <edge>+)
 
-<edge>        := (EDGE (SOURCE <ATOMIC>) (MID <instruction>+)? (TARGET <ATOMIC>))
+<edge>        := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
 
 <instruction> := (TEST <ANY> <ANY>)
                | (HOLD <ATOMIC> <ANY>)
@@ -73,9 +73,9 @@ Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolpr
         - Built‑in variable `Params` contains the incoming parameter S-expression.
         - Builtin variable `Result` is where the final output S-expression must be stored.
     - Edges
-        - Each `(EDGE ...)` specifies a `SOURCE` node, optional `MID` instructions, and a `TARGET` node.
+        - Each `(EDGE ...)` specifies a `SOURCE` node, optional `INSTR` instructions, and a `TARGET` node.
             - Execution of a program follows the graph model. The graph begins at the special node `begin` and terminates at `end`.
-            - Instructions (in `MID`)
+            - Instructions (in `INSTR`)
                 - `(TEST expr1 expr2)`
                     - Evaluate `expr1` and `expr2` and compare them.
                     - If equal, continue; otherwise skip to the next outgoing edge.
@@ -105,7 +105,7 @@ The first example takes any S-expression as a parameter, and simply returns it u
         EDGE
         (SOURCE begin)
         (
-            MID
+            INSTR
             (HOLD X Params)
             (HOLD Result X)
         )
@@ -114,7 +114,7 @@ The first example takes any S-expression as a parameter, and simply returns it u
 )
 ```
 
-We used a variable `X` as a helper to show that `(MID ...)` clause can hold more than one instruction in a sequence.
+We used a variable `X` as a helper to show that `(INSTR ...)` clause can hold more than one instruction in a sequence.
 
 #### test condition
 
@@ -127,7 +127,7 @@ The next example accepts an S-expression as a parameter. If the expression equal
         EDGE
         (SOURCE begin)
         (
-            MID
+            INSTR
             (TEST Params ping)
             (HOLD Result pong)
         )
@@ -148,7 +148,7 @@ Of course, we can have multiple edges from the same node. The following example 
         EDGE
         (SOURCE begin)
         (
-            MID
+            INSTR
             (TEST Params hi)
             (HOLD Result greeting)
         )
@@ -159,7 +159,7 @@ Of course, we can have multiple edges from the same node. The following example 
         EDGE
         (SOURCE begin)
         (
-            MID
+            INSTR
             (TEST Params bye)
             (HOLD Result farewell)
         )
@@ -169,7 +169,7 @@ Of course, we can have multiple edges from the same node. The following example 
     (
         EDGE
         (SOURCE begin)
-        (MID (HOLD Result unknown))
+        (INSTR (HOLD Result unknown))
         (TARGET end)
     )
 )
@@ -187,7 +187,7 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     (
         EDGE
         (SOURCE begin)
-        (MID (HOLD X Params))
+        (INSTR (HOLD X Params))
         (TARGET check)
     )
 
@@ -195,14 +195,14 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     (
         EDGE
         (SOURCE check)
-        (MID (TEST X foo))
+        (INSTR (TEST X foo))
         (TARGET match-foo)
     )
 
     /Step 3: Check for bar/
     (
         EDGE (SOURCE check)
-        (MID (TEST X bar))
+        (INSTR (TEST X bar))
         (TARGET match-bar)
     )
 
@@ -216,7 +216,7 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     /Step 5: Match case foo/
     (
         EDGE (SOURCE match-foo)
-        (MID (HOLD Result alpha))
+        (INSTR (HOLD Result alpha))
         (TARGET end)
     )
 
@@ -224,14 +224,14 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     (
         EDGE
         (SOURCE match-bar)
-        (MID (HOLD Result beta))
+        (INSTR (HOLD Result beta))
         (TARGET end)
     )
 
     /Step 7: Default case/
     (
         EDGE (SOURCE fallback)
-        (MID (HOLD Result unknown))
+        (INSTR (HOLD Result unknown))
         (TARGET end)
     )
 )
@@ -251,7 +251,7 @@ Finally, we get to a more interesting example of reversing a list. To do this, w
         EDGE
         (SOURCE begin)
         (
-            MID
+            INSTR
             (HOLD Input Params)
             (HOLD Acc ())
         )
@@ -262,7 +262,7 @@ Finally, we get to a more interesting example of reversing a list. To do this, w
     (
         EDGE
         (SOURCE loop)
-        (MID (TEST Input ()))
+        (INSTR (TEST Input ()))
         (TARGET done) /If Input is (), go to done/
     )
     
@@ -270,7 +270,7 @@ Finally, we get to a more interesting example of reversing a list. To do this, w
         EDGE
         (SOURCE loop)
         (
-            MID
+            INSTR
             (HOLD Head (first Input))
             (HOLD Tail (rest Input))
             (HOLD Acc (prepend Head Acc))
@@ -283,7 +283,7 @@ Finally, we get to a more interesting example of reversing a list. To do this, w
     (
         EDGE
         (SOURCE done)
-        (MID (HOLD Result Acc))
+        (INSTR (HOLD Result Acc))
         (TARGET end)
     )
 )
