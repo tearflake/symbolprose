@@ -47,7 +47,7 @@ To get a glimpse on how a Symbolprose program code looks like, we bring the "Hel
     (
         EDGE
         (SOURCE begin)
-        (MID (HOLD Result "Hello world!"))
+        (INSTR (HOLD Result "Hello world!"))
         (TARGET end)
     )
 )
