@@ -30,9 +30,9 @@ The entire grammar of Symbolprose code files fits into only six lines of relaxed
 and there are only three builtin functions used only for sub-structural transformations:
 
 ```
-(prepend <ANY> <ANY>) -> <RESULT>
-(first <ANY>)         -> <RESULT>
-(rest <ANY>)          -> <RESULT>
+(PREPEND <ANY> <ANY>) -> <RESULT>
+(FIRST <ANY>)         -> <RESULT>
+(REST <ANY>)          -> <RESULT>
 ```
 
 Given these elements, in spite of being very minimalistic framework, Symbolprose is computationally complete.
