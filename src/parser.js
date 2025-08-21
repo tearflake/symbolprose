@@ -5,12 +5,76 @@
 var Parser = (
     function (obj) {
         return {
+            getRules: obj.getRules,
             consumeCFG: obj.consumeCFG,
         };
     }
 ) (
     (function () {
         "use strict";
+
+        var getRules = function (arr) {
+            var rules = [];
+            var stack = [];
+            var p = [];
+            var level = 0;
+            var parents = [];
+            
+            stack.push ({ast: arr, level: level, parents});
+            while (stack.length > 0){
+                var node = stack.pop ();
+                if (node.ast[0] === "REWRITE") {
+                    if (node.index) {
+                        p.pop ();
+                        p.push (node.index)
+                    }
+                    
+                    for(var i = node.ast.length - 1; i >= 1 && node.ast[i] !== "RULE" ; i--) {
+                        stack.push ({parents: [node.ast, node.parents], ast: node.ast[i], level: node.level + 1, index: i});
+                    }
+                    
+                    for(var i = node.ast.length - 1; i >= 1 && node.ast[i] === "RULE" ; i--) {
+                        stack.push ({parents: [node.ast, node.parents], ast: node.ast[i], level: node.level + 1, index: i});
+                    }
+                }
+                else if (node.ast[0] === "RULE") {
+                    var rule = node.ast;
+                    var v = [];
+                    var varsOffset = 0;
+                    if (rule[1][0] === "VAR") {
+                        varsOffset = 1;
+                        for (var j = 1; j < rule[1].length; j++) {
+                            if (-Ruler.getLvl (rule[1][j]) !== 0){
+                                return {err: "Can not escape variable definition error", file: file, path: p.concat ([node.index, 1, j])};
+                            }
+                            v.push (rule[1][j]);
+                        }
+                    }
+                    
+                    var r = {read: [], write: []};
+                    for (var j = 1; j < rule[1 + varsOffset][1].length; j++) {
+                        r.read.push (rule[1 + varsOffset][1][j]);
+                    }
+                    
+                    for (var j = 1; j < rule[2 + varsOffset][1].length; j++) {
+                        r.write.push (rule[2 + varsOffset][1][j]);
+                    }
+                    
+                    r.read = Sexpr.flatten (r.read[0]);
+                    r.write = Sexpr.flatten (r.write[0]);
+                    
+                    r.read = Ruler.levelShift (r.read, node.level);
+                    r.write = Ruler.levelShift (r.write, node.level);
+                    
+                    r.maxLvlR = Ruler.getMaxLvl (r.read, 0, r.read.length, v);
+                    r.maxLvlW = Ruler.getMaxLvl (r.write, 0, r.write.length, v);
+                    
+                    rules.push ({vars: v, rule: r, level: node.level, parents: node.parents});
+                }
+            }
+
+            return rules;
+        };
 
         var consumeCFG = function (rules, top, bot) {
             var stack, item;
@@ -252,6 +316,7 @@ var Parser = (
 
         return {
             consumeCFG: consumeCFG,
+            getRules: getRules
         }
     }) ()
 );
