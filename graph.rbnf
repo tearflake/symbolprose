@@ -1,0 +1,7 @@
+<start> := (GRAPH <edge>+)
+
+<edge> := (EDGE (SOURCE <ATOMIC>) (MID <instruction>+)? (TARGET <ATOMIC>))
+
+<instruction> := (TEST <ANY> <ANY>)
+               | (ASGN <ATOMIC> <ANY>)
+

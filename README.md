@@ -24,7 +24,7 @@ The entire grammar of Symbolprose code files fits into only six lines of relaxed
        <edge> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
 
 <instruction> := (TEST <ANY> <ANY>)
-               | (HOLD <ATOMIC> <ANY>)
+               | (ASGN <ATOMIC> <ANY>)
 ```
 
 and there are only three builtin functions used for sub-structural transformations:
@@ -47,7 +47,7 @@ To get a glimpse on how a Symbolprose program code looks like, we bring the "Hel
     (
         EDGE
         (SOURCE begin)
-        (INSTR (HOLD Result "Hello world!"))
+        (INSTR (ASGN Result "Hello world!"))
         (TARGET end)
     )
 )

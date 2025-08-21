@@ -66,7 +66,7 @@ var Interpreter = (
                     (RULE (READ (EXP instructions)) (WRITE (EXP (instruction ())          )))
 
                     (RULE (READ (EXP instruction)) (WRITE (EXP (\\TEST (ANY (ANY ()))))))
-                    (RULE (READ (EXP instruction)) (WRITE (EXP (\\HOLD (ANY (ANY ()))))))
+                    (RULE (READ (EXP instruction)) (WRITE (EXP (\\ASGN (ANY (ANY ()))))))
                 )
             `;
             
@@ -111,7 +111,7 @@ var Interpreter = (
             env["Params"] = params;
             
             let node = "begin"; 
-            let guard = 0, GUARD_LIMIT = 10000;
+            let guard = 0, GUARD_LIMIT = 25000;
             while (true) {
                 if (guard++ > GUARD_LIMIT) {
                     throw new Error("Guard limit exceeded");
@@ -129,7 +129,7 @@ var Interpreter = (
                         node = edge[3][1];
                         for (let j = 1; j < edge[2].length; j++) {
                             let instr = edge[2][j];
-                            if (instr[0] === "HOLD") {
+                            if (instr[0] === "ASGN") {
                                 env[instr[1]] = deepClone(evalExpr(instr[2], env));
                             }
                             else if (instr[0] === "TEST") {

@@ -49,7 +49,7 @@ In computer science, the syntax of a computer language is the set of rules that 
 <edge>        := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
 
 <instruction> := (TEST <ANY> <ANY>)
-               | (HOLD <ATOMIC> <ANY>)
+               | (ASGN <ATOMIC> <ANY>)
 ```
 
 To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the Symbolprose language.
@@ -79,7 +79,7 @@ Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolpr
                 - `(TEST expr1 expr2)`
                     - Evaluate `expr1` and `expr2` and compare them.
                     - If equal, continue; otherwise skip to the next outgoing edge.
-                - `(HOLD var expr)`
+                - `(ASGN var expr)`
                     - Evaluate `expr` and bind its value to `var`.
         - Outgoing edges from a given node are evaluated in declaration order; the first whose `TEST`s all pass is taken.
         - If there are no more edges to try, execution halts with an error.
@@ -106,8 +106,8 @@ The first example takes any S-expression as a parameter, and simply returns it u
         (SOURCE begin)
         (
             INSTR
-            (HOLD X Params)
-            (HOLD Result X)
+            (ASGN X Params)
+            (ASGN Result X)
         )
         (TARGET end)
     )
@@ -129,7 +129,7 @@ The next example accepts an S-expression as a parameter. If the expression equal
         (
             INSTR
             (TEST Params ping)
-            (HOLD Result pong)
+            (ASGN Result pong)
         )
         (TARGET end)
     )
@@ -150,7 +150,7 @@ Of course, we can have multiple edges from the same node. The following example 
         (
             INSTR
             (TEST Params hi)
-            (HOLD Result greeting)
+            (ASGN Result greeting)
         )
         (TARGET end)
     )
@@ -161,7 +161,7 @@ Of course, we can have multiple edges from the same node. The following example 
         (
             INSTR
             (TEST Params bye)
-            (HOLD Result farewell)
+            (ASGN Result farewell)
         )
         (TARGET end)
     )
@@ -169,7 +169,7 @@ Of course, we can have multiple edges from the same node. The following example 
     (
         EDGE
         (SOURCE begin)
-        (INSTR (HOLD Result unknown))
+        (INSTR (ASGN Result unknown))
         (TARGET end)
     )
 )
@@ -187,7 +187,7 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     (
         EDGE
         (SOURCE begin)
-        (INSTR (HOLD X Params))
+        (INSTR (ASGN X Params))
         (TARGET check)
     )
 
@@ -216,7 +216,7 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     /Step 5: Match case foo/
     (
         EDGE (SOURCE match-foo)
-        (INSTR (HOLD Result alpha))
+        (INSTR (ASGN Result alpha))
         (TARGET end)
     )
 
@@ -224,14 +224,14 @@ We can also have multiple intermediate nodes between `begin` and `end` nodes. In
     (
         EDGE
         (SOURCE match-bar)
-        (INSTR (HOLD Result beta))
+        (INSTR (ASGN Result beta))
         (TARGET end)
     )
 
     /Step 7: Default case/
     (
         EDGE (SOURCE fallback)
-        (INSTR (HOLD Result unknown))
+        (INSTR (ASGN Result unknown))
         (TARGET end)
     )
 )
@@ -252,8 +252,8 @@ Finally, we get to a more interesting example of reversing a list. To do this, w
         (SOURCE begin)
         (
             INSTR
-            (HOLD Input Params)
-            (HOLD Acc ())
+            (ASGN Input Params)
+            (ASGN Acc ())
         )
         (TARGET loop)
     )
@@ -271,10 +271,10 @@ Finally, we get to a more interesting example of reversing a list. To do this, w
         (SOURCE loop)
         (
             INSTR
-            (HOLD Head (first Input))
-            (HOLD Tail (rest Input))
-            (HOLD Acc (prepend Head Acc))
-            (HOLD Input Tail)
+            (ASGN Head (first Input))
+            (ASGN Tail (rest Input))
+            (ASGN Acc (prepend Head Acc))
+            (ASGN Input Tail)
         )
         (TARGET loop) /Continue looping/
     )
@@ -283,7 +283,7 @@ Finally, we get to a more interesting example of reversing a list. To do this, w
     (
         EDGE
         (SOURCE done)
-        (INSTR (HOLD Result Acc))
+        (INSTR (ASGN Result Acc))
         (TARGET end)
     )
 )

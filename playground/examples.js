@@ -203,7 +203,7 @@ foo
 (
     GRAPH
 
-    /Setup variables/
+    /Load variables/
     (
         EDGE
         (SOURCE begin)
