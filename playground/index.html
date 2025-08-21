@@ -401,8 +401,7 @@
                         document.getElementById("tm").innerHTML = "";
                     } else {
                         var trewritten = (Date.now () - tm)
-                        //document.getElementById("tm").innerHTML = "(rules compiled in " + tcompiled + "ms)" + " (program interpreted in " + trewritten + "ms, " + Interpreter.debugInfo.appliedRules + " rule applications)";
-                        document.getElementById("tm").innerHTML = "";
+                        document.getElementById("tm").innerHTML = "(rules compiled in " + tcompiled + "ms)" + " (program interpreted in " + trewritten + "ms)";
                         output1.value = Interpreter.stringify (output);
                     }
                 }, 0);
