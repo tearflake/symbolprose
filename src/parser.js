@@ -44,7 +44,7 @@ var Parser = (
                     if (rule[1][0] === "VAR") {
                         varsOffset = 1;
                         for (var j = 1; j < rule[1].length; j++) {
-                            if (-Ruler.getLvl (rule[1][j]) !== 0){
+                            if (-getLvl (rule[1][j]) !== 0){
                                 return {err: "Can not escape variable definition error", file: file, path: p.concat ([node.index, 1, j])};
                             }
                             v.push (rule[1][j]);
@@ -63,11 +63,11 @@ var Parser = (
                     r.read = Sexpr.flatten (r.read[0]);
                     r.write = Sexpr.flatten (r.write[0]);
                     
-                    r.read = Ruler.levelShift (r.read, node.level);
-                    r.write = Ruler.levelShift (r.write, node.level);
+                    r.read = levelShift (r.read, node.level);
+                    r.write = levelShift (r.write, node.level);
                     
-                    r.maxLvlR = Ruler.getMaxLvl (r.read, 0, r.read.length, v);
-                    r.maxLvlW = Ruler.getMaxLvl (r.write, 0, r.write.length, v);
+                    r.maxLvlR = getMaxLvl (r.read, 0, r.read.length, v);
+                    r.maxLvlW = getMaxLvl (r.write, 0, r.write.length, v);
                     
                     rules.push ({vars: v, rule: r, level: node.level, parents: node.parents});
                 }
@@ -113,16 +113,16 @@ var Parser = (
                             stackPop (stack, true, memo);
                         }
                         else {
-                            if (Ruler.levelSplit (item.write[item.fromW]).atom === "ATOMIC" & item.toR - item.fromR === 1) {
+                            if (levelSplit (item.write[item.fromW]).atom === "ATOMIC" & item.toR - item.fromR === 1) {
                                 stackPop (stack, true, item.read.slice (item.fromR, item.toR));
                             }
-                            else if (Ruler.levelSplit (item.write[item.fromW]).atom === "ANY") {
+                            else if (levelSplit (item.write[item.fromW]).atom === "ANY") {
                                 stackPop (stack, true, item.read.slice (item.fromR, item.toR));
                             }
-                            else if ((item.toR - item.fromR === 1 && Ruler.getLvl (item.write[item.fromW]) === 0 && item.write[item.fromW] === item.read[item.fromR])) {
+                            else if ((item.toR - item.fromR === 1 && getLvl (item.write[item.fromW]) === 0 && item.write[item.fromW] === item.read[item.fromR])) {
                                 stackPop (stack, true, [item.write[item.fromW]]);
                             }
-                            else if (Ruler.getLvl (item.write[item.fromW]) > 0){
+                            else if (getLvl (item.write[item.fromW]) > 0){
                                 stack.push ({
                                     phase: "rewrite",
                                     ruleIndex: -1,
@@ -314,6 +314,117 @@ var Parser = (
             }
         }
 
+        var levelSplit = function (atom) {
+            var vEsc, vAtm;
+            
+            if (atom === undefined) {
+                return {esc: -Infinity, atom: undefined};
+            }
+            else {
+                vEsc = getLvl (atom);
+                if (vEsc < 0) {
+                    vAtm = atom.substring (-vEsc, atom.length);
+                }
+                else {
+                    vAtm = atom.substring (0, atom.length - vEsc);
+                }
+                
+                return {esc: vEsc, atom: vAtm};
+            }
+        }
+
+        var levelShift = function (tok, level) {
+            var idx = 0,result = [];
+            
+            while (idx < tok.length) {
+                var str = tok[idx];
+                if (str !== "(" && str !== ")" /*&&
+                    (str !== "ATOMIC" && str !== "COMPOUND" && str !== "ANY")*/
+                ) {
+                    for (var curLevelL = 0; curLevelL < str.length && str.charAt(curLevelL) === "\\"; curLevelL++);
+                    if ("\\".repeat (str.length) !== str) {
+                        for (var curLevelR = 0; str.length - curLevelR - 1 > 0 && str.charAt(str.length - curLevelR - 1) === "\\"; curLevelR++);
+                    }
+                    else {
+                        var curLevelR = 0;
+                    }
+                    
+                    var lft = curLevelL;
+                    var rgt = curLevelR;
+                    if (level > 0) {
+                        for (var i = 0; i < level; i++) {
+                            if (lft > 0) {
+                                lft--;
+                            }
+                            else {
+                                rgt++;
+                            }
+                        }
+                    }
+                    else {
+                        for (var i = 0; i > level; i--) {
+                            if (rgt > 0) {
+                                rgt--;
+                            }
+                            else {
+                                lft++;
+                            }
+                        }
+                    }
+
+                    var strMid = str.substring (curLevelL, str.length - curLevelR);
+                    var strLft = lft > 0 ? "\\".repeat (lft): "";
+                    var strRgt = rgt > 0 ? "\\".repeat (rgt): "";
+                    
+                    str = strLft + strMid + strRgt;
+                }
+                
+                result.push (str);
+                idx++;
+            }
+            
+            return result;
+        }
+
+        var getLvl = function (str, vars) {
+            if (vars === undefined) vars  = [];
+            if (/*str !== "ATOMIC" && str !== "COMPOUND" && str !== "ANY" &&*/ str !== undefined /*&& vars.indexOf (str) === -1*/){
+                for (var curLevelL = 0; curLevelL < str.length && str.charAt(curLevelL) === "\\"; curLevelL++);
+                for (var curLevelR = 0; str.length - curLevelR - 1 > 0 && str.charAt(str.length - curLevelR - 1) === "\\"; curLevelR++);
+                
+                return curLevelL > 0 ? -curLevelL : curLevelR;
+            }
+            else {
+                return -Infinity ;
+            }
+        }
+
+        var getMaxLvl = function (tok, from, to, vars) {
+            var result = -Infinity;
+            if (Array.isArray (tok)) {
+                for (var i = from; i < tok.length; i++) {
+                    if (tok[i] !== "(" && tok[i] !== ")") {
+                        result = Math.max (result, getLvl (tok[i], vars));
+                    }
+                }
+                
+                return result;
+            }
+        }
+
+        var getLvl = function (str, vars) {
+            if (vars === undefined) vars  = [];
+            if (/*str !== "ATOMIC" && str !== "COMPOUND" && str !== "ANY" &&*/ str !== undefined /*&& vars.indexOf (str) === -1*/){
+                for (var curLevelL = 0; curLevelL < str.length && str.charAt(curLevelL) === "\\"; curLevelL++);
+                for (var curLevelR = 0; str.length - curLevelR - 1 > 0 && str.charAt(str.length - curLevelR - 1) === "\\"; curLevelR++);
+                
+                return curLevelL > 0 ? -curLevelL : curLevelR;
+            }
+            else {
+                return -Infinity ;
+            }
+        }
+
         return {
             consumeCFG: consumeCFG,
             getRules: getRules
@@ -327,7 +438,6 @@ if (isNode ()) {
     // begin of Node.js support
     
     var Sexpr = require ("./s-expr.js");
-    var Ruler = require ("./ruler.js");
     module.exports = Parser;
     
     function escapeRegExp(string) {
