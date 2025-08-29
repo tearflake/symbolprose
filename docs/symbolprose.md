@@ -57,9 +57,9 @@ To interpret these grammar rules, we use special symbols: `<...>` for noting ide
 As an intertwined part of the above grammar, anywhere inside `<ANY>` S-expression, there may be placed any of the three builtin functions:  
 
 ```
-("prepend" <ANY> <LIST>) -> <LIST>
-("first" <LIST>)         -> <ANY>
-("rest" <LIST>)          -> <LIST>
+("PREPEND" <ANY> <LIST>) -> <LIST>
+("FIRST" <LIST>)         -> <ANY>
+("REST" <LIST>)          -> <LIST>
 ```
 
 In addition to the exposed grammar, user comments have no meaning to the system, but may be descriptive to readers, and may be placed wherever a whitespace is expected. Single line comments are embraced within a pair of `/` symbols. Multiline comments are embraced within an odd number of `/` symbols placed at the same whitespace distance from the beginning of line, so that everything in between is considered as a comment.
