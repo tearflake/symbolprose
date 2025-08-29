@@ -5,8 +5,9 @@
 var Interpreter = (
     function (obj) {
         return {
-            compile: obj.compile,
+            parse: obj.parse,
             run: obj.run,
+            runLowLevel: obj.runLowLevel,
             stringify: obj.stringify
         };
     }
@@ -14,14 +15,86 @@ var Interpreter = (
     (function () {
         "use strict";
         
-        function deepEqual(a, b) {
-            if (a === b) return true;
-            if (Array.isArray(a) && Array.isArray(b)) {
-                if (a.length !== b.length) return false;
-                for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false;
-                return true;
+        function parse (program) {
+            let syntax = `
+            (SEQUENCE
+                'GRAPH'
+                (ONEORMORE
+                    (SEQUENCE
+                        'EDGE'
+                        (SEQUENCE 'SOURCE' ATOMIC)
+                        (OPTIONAL
+                            (SEQUENCE
+                                'INSTR'
+                                (ONEORMORE
+                                    (CHOICE
+                                        (SEQUENCE 'TEST' ANY ANY)
+                                        (SEQUENCE 'ASGN' ATOMIC ANY)))))
+                        (SEQUENCE 'TARGET' ATOMIC))))
+            `;
+            
+            let sSyntax = Sexpr.parse (syntax);
+            let sProgram = Sexpr.parse (program);
+            
+            if (sProgram.err) {
+                return sProgram;
             }
-            return (Number.isNaN (a) && Number.isNaN (b)) ? true : false;
+            
+            let ast = Parser.parse (sProgram, sSyntax);
+            
+            if (ast.err) {
+                let msg = Sexpr.getNode (program, ast.path);
+                return {err: msg.err, found: msg.found, pos: msg.pos};
+            }
+            else {
+                return ast;
+            }
+        }
+        
+        function makeGraph (sexpr) {
+            let graph = [];
+            // GRAPH
+            let grph = sexpr;
+            for (let i = 1; i < grph.length; i++) {
+                let elem = grph[i];
+                // EDGE
+                if (elem[0] === "EDGE") {
+                    // SOURCE
+                    let source = elem[1][1];
+                    if (!graph[source] && !Object.prototype.hasOwnProperty.call(graph, source)) {
+                        graph[source] = [];
+                    }
+                    
+                    if (elem.length === 4) {
+                        let instructionSet = [];
+                        let instrs = elem[2];
+                        // INSTR
+                        for (let j = 1; j < instrs.length; j++) {
+                            let instr = instrs[j];
+                            var instruction;
+                            // ASGN
+                            if (instr[0] === "ASGN") {
+                                instruction = {name: "ASGN", var: instr[1], value: instr [2]}
+                            }
+                            // TEST
+                            else if (instr[0] === "TEST") {
+                                instruction = {name: "TEST", lft: instr[1], rgt: instr [2]}
+                            }
+                            
+                            instructionSet.push (instruction);
+                        }
+                        
+                        // TARGET
+                        graph[source].push ({instructions: instructionSet, target: elem[3][1]});
+                    }
+                    else if (elem.length === 3) {
+                        // TARGET
+                        graph[source].push ({instructions: [], target: elem[2][1]});
+                    }
+                }
+            }
+            
+            return graph;
         }
 
         function deepClone(v) {
@@ -29,131 +102,90 @@ var Interpreter = (
             return v;
         }
 
+        function deepEqual(a, b) {
+            if (a === b) return true;
+            if (Array.isArray (a) && Array.isArray (b)) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false;
+                return true;
+            }
+            return (Number.isNaN (a) && Number.isNaN (b)) ? true : false;
+        }
+
         function evalExpr(expr, env) {
-            if (!Array.isArray(expr)) {
+            if (!Array.isArray (expr)) {
                 if (typeof expr === "string") {
-                    if (Object.prototype.hasOwnProperty.call(env, expr)) return env[expr];
+                    if (Object.prototype.hasOwnProperty.call (env, expr)) return env[expr];
                     return expr;
                 }
                 return expr;
             }
-          
-            expr = expr.map(e => evalExpr(e, env));
+            
+            expr = expr.map(e => evalExpr (e, env));
             
             if (Array.isArray (expr)) {
                 const head = expr[0];
                 if (typeof head === "string" && BUILTINS[head]) {
-                    return BUILTINS[head](expr.slice(1));
+                    return BUILTINS[head] (expr);
                 }
             }
           
             return expr;
         }
 
-        function compile (program) {
-            var syntax = `
-                (
-                    REWRITE
-                    (RULE (READ (EXP start)) (WRITE (EXP (\\GRAPH expressions))))
-                    
-                    (RULE (READ (EXP expressions)) (WRITE (EXP (expression expressions))))
-                    (RULE (READ (EXP expressions)) (WRITE (EXP (expression ())         )))
-
-                    (RULE (READ (EXP expression)) (WRITE (EXP (\\EDGE ((\\SOURCE (ATOMIC ())) ((\\INSTR instructions) ((\\TARGET (ATOMIC ())) ())))))))
-                    (RULE (READ (EXP expression)) (WRITE (EXP (\\EDGE ((\\SOURCE (ATOMIC ())) ((\\TARGET (ATOMIC ())) ())))                       )))
-                    
-                    (RULE (READ (EXP instructions)) (WRITE (EXP (instruction instructions))))
-                    (RULE (READ (EXP instructions)) (WRITE (EXP (instruction ())          )))
-
-                    (RULE (READ (EXP instruction)) (WRITE (EXP (\\TEST (ANY (ANY ()))))))
-                    (RULE (READ (EXP instruction)) (WRITE (EXP (\\ASGN (ANY (ANY ()))))))
-                )
-            `;
-            
-            var syntaxRules = Parser.getRules (Sexpr.parse (syntax));
-            var pProgram = Sexpr.parse (program);
-            
-            if (pProgram.err) {
-                return pProgram;
-            }
-            
-            var expression = Sexpr.normalizeSexpr (pProgram);
-            var ret = Parser.consumeCFG (syntaxRules, "start\\", expression);
-            if (ret.err) {
-                var path = Sexpr.denormalizeIndexes (ret.path);
-                var msg = Sexpr.getNode (program, path);
-
-                return {err: msg.err, found: msg.found, pos: msg.pos};
-            }
-            else {
-                program = pProgram;
-                let compiledGraph = [];
-                for (let i = 1; i < program.length; i++) {
-                    let name = program[i][1][1];
-                    if (!compiledGraph [name] && !Object.prototype.hasOwnProperty.call(compiledGraph, name)) {
-                        compiledGraph[name] = [];
-                    }
-                    
-                    compiledGraph[name].push (program[i]);
-                }
-                
-                return compiledGraph;
-            }
+        function run (program, params) {
+            var params = Sexpr.parse (params);
+            if (params.err) return params;
+            return runLowLevel (makeGraph (program), params);
         }
 
-        function run (graph, params) {
-            params = Sexpr.parse(params);
-            if (params.err) {
-                return params;
-            }
-
+        function runLowLevel (graph, params) {
             const env = Object.create(null);
-            env["Params"] = params;
+            env["PARAMS"] = params;
+            env["RESULT"] = "NIL";
             
-            let node = "begin"; 
-            let guard = 0, GUARD_LIMIT = 25000;
-            while (true) {
-                if (guard++ > GUARD_LIMIT) {
-                    throw new Error("Guard limit exceeded");
-                }
-                
-                let edges = graph[node];
-                if (!edges) {
-                    throw new Error (`Uknown node: ${node}`);
-                }
-
-                loop1: for (let i = 0; i < edges.length; i++) {
-                    let edge = edges[i];
+            let node = "BEGIN"; 
+            let guard = 0, GUARD_LIMIT = 10000;
+            try {
+                loop1: while (node !== "END") {
+                    if (guard++ > GUARD_LIMIT) {
+                        throw new Error ("Guard limit exceeded");
+                    }
+                    else if (Array.isArray (node)) {
+                        throw new Error (`Error - node can not be a list: ${node}`);
+                    }
                     
-                    if (edge.length === 4) {
-                        node = edge[3][1];
-                        for (let j = 1; j < edge[2].length; j++) {
-                            let instr = edge[2][j];
-                            if (instr[0] === "ASGN") {
-                                env[instr[1]] = deepClone(evalExpr(instr[2], env));
+                    let edges = graph[node];
+                    if (!edges) {
+                        throw new Error (`Uknown node: ${node}`);
+                    }
+
+                    loop2: for (let i = 0; i < edges.length; i++) {
+                        let edge = edges[i];
+                        for (let j = 0; j < edge.instructions.length; j++) {
+                            let instruction = edge.instructions[j];
+                            if (instruction.name === "ASGN") {
+                                env[instruction.var] = evalExpr (instruction.value, env);
                             }
-                            else if (instr[0] === "TEST") {
-                                const a = evalExpr(instr[1], env);
-                                const b = evalExpr(instr[2], env);
-                                if (!deepEqual(a, b)) {
-                                    continue loop1;
+                            else if (instruction.name === "TEST") {
+                                const a = evalExpr (instruction.lft, env);
+                                const b = evalExpr (instruction.rgt, env);
+                                if (!deepEqual (a, b)) {
+                                    continue loop2;
                                 }
                             }
                         }
                         
-                        break;
-                    }
-                    else {
-                        node = edge[2][1];
+                        node = evalExpr (edge.target, env);
+                        continue loop1;
                     }
                 }
-                
-                if (node  === "end") {
-                    break;
-                }
-            }
 
-            return env["Result"] || "NIL";
+                return env["RESULT"];
+            }
+            catch (e) {
+                return {err: e.message};
+            }
         }
         
         var stringify = function (arr) {
@@ -161,10 +193,23 @@ var Interpreter = (
         }
 
         return {
-            compile: compile,
+            parse: parse,
             run: run,
+            runLowLevel: runLowLevel,
             stringify: stringify,
         }
     }) ()
 );
+
+var isNode = new Function ("try {return this===global;}catch(e){return false;}");
+
+if (isNode ()) {
+    // begin of Node.js support
+    
+    var Sexpr = require ("./s-expr.js");
+    var Sexpr = require ("./parser.js");
+    module.exports = Interpreter;
+    
+    // end of Node.js support
+}
 

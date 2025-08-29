@@ -3,15 +3,16 @@ examples = {
 `
 (
     GRAPH
+
     (
         EDGE
-        (SOURCE begin)
+        (SOURCE BEGIN)
         (
             INSTR
-            (ASGN X Params)
-            (ASGN Result X)
+            (ASGN X PARAMS)
+            (ASGN RESULT X)
         )
-        (TARGET end)
+        (TARGET END)
     )
 )
 `,
@@ -24,15 +25,16 @@ xyz
 `
 (
     GRAPH
+
     (
         EDGE
-        (SOURCE begin)
+        (SOURCE BEGIN)
         (
             INSTR
-            (TEST Params ping)
-            (ASGN Result pong)
+            (TEST PARAMS ping)
+            (ASGN RESULT pong)
         )
-        (TARGET end)
+        (TARGET END)
     )
 )
 `,
@@ -45,34 +47,34 @@ ping
 `
 (
     GRAPH
-    
+
     (
         EDGE
-        (SOURCE begin)
+        (SOURCE BEGIN)
         (
             INSTR
-            (TEST Params hi)
-            (ASGN Result greeting)
+            (TEST PARAMS hi)
+            (ASGN RESULT greeting)
         )
-        (TARGET end)
+        (TARGET END)
     )
 
     (
         EDGE
-        (SOURCE begin)
+        (SOURCE BEGIN)
         (
             INSTR
-            (TEST Params bye)
-            (ASGN Result farewell)
+            (TEST PARAMS bye)
+            (ASGN RESULT farewell)
         )
-        (TARGET end)
+        (TARGET END)
     )
 
     (
         EDGE
-        (SOURCE begin)
-        (INSTR (ASGN Result unknown))
-        (TARGET end)
+        (SOURCE BEGIN)
+        (INSTR (ASGN RESULT unknown))
+        (TARGET END)
     )
 )
 `,
@@ -89,8 +91,8 @@ hi
     /Step 1: Load input/
     (
         EDGE
-        (SOURCE begin)
-        (INSTR (ASGN X Params))
+        (SOURCE BEGIN)
+        (INSTR (ASGN X PARAMS))
         (TARGET check)
     )
 
@@ -120,24 +122,24 @@ hi
     /Step 5: Match case foo/
     (
         EDGE (SOURCE match-foo)
-        (INSTR (ASGN Result alpha))
-        (TARGET end)
+        (INSTR (ASGN RESULT alpha))
+        (TARGET END)
     )
 
     /Step 6: Match case bar/
     (
         EDGE
         (SOURCE match-bar)
-        (INSTR (ASGN Result beta))
-        (TARGET end)
+        (INSTR (ASGN RESULT beta))
+        (TARGET END)
     )
 
     /Step 7: Default case/
     (
         EDGE
         (SOURCE fallback)
-        (INSTR (ASGN Result unknown))
-        (TARGET end)
+        (INSTR (ASGN RESULT unknown))
+        (TARGET END)
     )
 )
 `,
@@ -153,10 +155,10 @@ foo
     /Load Input and initialize accumulator/
     (
         EDGE
-        (SOURCE begin)
+        (SOURCE BEGIN)
         (
             INSTR
-            (ASGN Input Params)
+            (ASGN Input PARAMS)
             (ASGN Acc ())
         )
         (TARGET loop)
@@ -184,12 +186,12 @@ foo
         (TARGET loop) /Continue looping/
     )
 
-    /Final step: store reversed Result/
+    /Final step: store reversed RESULT/
     (
         EDGE
         (SOURCE done)
-        (INSTR (ASGN Result Acc))
-        (TARGET end)
+        (INSTR (ASGN RESULT Acc))
+        (TARGET END)
     )
 )
 `,
@@ -198,7 +200,7 @@ foo
 (1 2 3 4)
 `,
 
-"element-of":
+"is-element-of":
 `
 (
     GRAPH
@@ -206,11 +208,11 @@ foo
     /Load variables/
     (
         EDGE
-        (SOURCE begin)
+        (SOURCE BEGIN)
         (
             INSTR
-            (ASGN Element (FIRST Params))
-            (ASGN List (FIRST (REST Params)))
+            (ASGN Element (FIRST PARAMS))
+            (ASGN List (FIRST (REST PARAMS)))
         )
         (TARGET loop)
     )
@@ -222,9 +224,9 @@ foo
         (
             INSTR
             (TEST List ())
-            (ASGN Result false)
+            (ASGN RESULT false)
         )
-        (TARGET end) /done/
+        (TARGET END) /done/
     )
     
     /Loop condition: if Element is found/
@@ -234,12 +236,12 @@ foo
         (
             INSTR
             (TEST Element (FIRST List))
-            (ASGN Result true)
+            (ASGN RESULT true)
         )
-        (TARGET end) /done/
+        (TARGET END) /done/
     )
     
-    /Fallback: Process next element in list/
+    /Fallback: process next element in list/
     (
         EDGE
         (SOURCE loop)
@@ -248,7 +250,7 @@ foo
     )
 )
 `,
-"element-of-input":
+"is-element-of-input":
 `
 (2 (1 2 3 4))
 `

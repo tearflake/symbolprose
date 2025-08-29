@@ -1,6 +1,9 @@
-<start> := (GRAPH <edge>+)
+<start> := (GRAPH (NAME <ATOMIC>) (DEFINE <edge>+))
+         | (IMPORT <ATOMIC> <ATOMIC>)
+         | (IMPORT <ATOMIC>)
 
-<edge> := (EDGE (SOURCE <ATOMIC>) (MID <instruction>+)? (TARGET <ATOMIC>))
+<edge> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
+        | <start>
 
 <instruction> := (TEST <ANY> <ANY>)
                | (ASGN <ATOMIC> <ANY>)

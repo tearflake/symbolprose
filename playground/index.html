@@ -149,12 +149,12 @@
         
 <div class="droplbl">1. tutorial examples</div>
 
-        <a href="javascript:populate('echo');     ">&nbsp;&nbsp;&nbsp;&nbsp; - echo</a>
-        <a href="javascript:populate('ping-pong');">&nbsp;&nbsp;&nbsp;&nbsp; - ping-pong</a>
-        <a href="javascript:populate('hi-bye');   ">&nbsp;&nbsp;&nbsp;&nbsp; - hi-bye</a>
-        <a href="javascript:populate('foo-bar');  ">&nbsp;&nbsp;&nbsp;&nbsp; - foo-bar</a>
-        <a href="javascript:populate('element-of');  ">&nbsp;&nbsp;&nbsp;&nbsp; - element-of-list</a>
-        <a href="javascript:populate('reverse');  ">&nbsp;&nbsp;&nbsp;&nbsp; - reverse-list</a>
+        <a href="javascript:populate('echo');           ">&nbsp;&nbsp;&nbsp;&nbsp; - echo</a>
+        <a href="javascript:populate('ping-pong');      ">&nbsp;&nbsp;&nbsp;&nbsp; - ping-pong</a>
+        <a href="javascript:populate('hi-bye');         ">&nbsp;&nbsp;&nbsp;&nbsp; - hi-bye</a>
+        <a href="javascript:populate('foo-bar');        ">&nbsp;&nbsp;&nbsp;&nbsp; - foo-bar</a>
+        <a href="javascript:populate('is-element-of');  ">&nbsp;&nbsp;&nbsp;&nbsp; - is-element-of</a>
+        <a href="javascript:populate('reverse');        ">&nbsp;&nbsp;&nbsp;&nbsp; - reverse-list</a>
 
 <br/>
 
@@ -172,7 +172,7 @@
              <td class="exRound" id="top" valign="middle" height="28" width="100%" style="color:rgb(48,48,48); background-color:rgb(208,208,208);">
                 <font style="font-size:14px">
                 <b>
-                  rules: &nbsp;&nbsp;
+                  program: &nbsp;&nbsp;
                 </b>
                 </font>
              </td>
@@ -387,13 +387,13 @@
         
         setTimeout (async function (){
             var tm = Date.now ();
-            var program = await Interpreter.compile (rules1.getValue ());
+            var program = await Interpreter.parse (rules1.getValue ());
             if (program.err) {
                 output1.value = "rules:\n" + program.err + " at " + "(" + (program.pos.y + 1) + ", " + (program.pos.x + 1) + ")" + (program.found ? ", found: " + program.found : "");
                 document.getElementById("tm").innerHTML = "";
             } else {
                 var tcompiled = (Date.now () - tm);
-                document.getElementById("tm").innerHTML = "(rules compiled in " + tcompiled + "ms) (interpreting program...)";
+                document.getElementById("tm").innerHTML = "(rules parsed in " + tcompiled + "ms) (interpreting program...)";
                 var tm = Date.now ();
                 setTimeout (function (){
                     var output = Interpreter.run (program, input1.getValue ());
@@ -402,7 +402,7 @@
                         document.getElementById("tm").innerHTML = "";
                     } else {
                         var trewritten = (Date.now () - tm)
-                        document.getElementById("tm").innerHTML = "(rules compiled in " + tcompiled + "ms)" + " (program interpreted in " + trewritten + "ms)";
+                        document.getElementById("tm").innerHTML = "(rules parsed in " + tcompiled + "ms)" + " (program interpreted in " + trewritten + "ms)";
                         output1.value = Interpreter.stringify (output);
                     }
                 }, 0);

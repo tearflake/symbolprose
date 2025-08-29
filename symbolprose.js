@@ -23,9 +23,5 @@
     var script = document.createElement('script')
     script.src = path + "builtins.js"
     document.body.appendChild(script);
-    
-    var script = document.createElement('script')
-    script.src = path + "ruler.js"
-    document.body.appendChild(script);
 })()        
 

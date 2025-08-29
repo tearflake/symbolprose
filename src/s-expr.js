@@ -573,6 +573,10 @@ var Sexpr = (
         }
 
         function quoteIfNecessary (str) {
+            if (str.graph){
+                return "[GRAPH]";
+            }
+            
             var quoted = false;
             for (var i = 0; i < str.length; i++) {
                 if (str === "" || '/() \t\n\r'.indexOf (str.charAt (i)) > -1) {

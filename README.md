@@ -2,7 +2,7 @@
 // under construction //
 ```
 
-# symbolprose v0.1.2
+# symbolprose v0.1.9
 
 _**tags:** s-expression, intermediate-representation, imperative-programming_
 
@@ -46,9 +46,9 @@ To get a glimpse on how a Symbolprose program code looks like, we bring the "Hel
     GRAPH
     (
         EDGE
-        (SOURCE begin)
+        (SOURCE BEGIN)
         (INSTR (ASGN Result "Hello world!"))
-        (TARGET end)
+        (TARGET END)
     )
 )
 ```

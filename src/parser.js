@@ -5,429 +5,198 @@
 var Parser = (
     function (obj) {
         return {
-            getRules: obj.getRules,
-            consumeCFG: obj.consumeCFG,
+            makeRules: obj.makeRules,
+            parse: obj.parse
         };
     }
 ) (
     (function () {
         "use strict";
-
-        var getRules = function (arr) {
-            var rules = [];
-            var stack = [];
-            var p = [];
-            var level = 0;
-            var parents = [];
-            
-            stack.push ({ast: arr, level: level, parents});
-            while (stack.length > 0){
-                var node = stack.pop ();
-                if (node.ast[0] === "REWRITE") {
-                    if (node.index) {
-                        p.pop ();
-                        p.push (node.index)
-                    }
-                    
-                    for(var i = node.ast.length - 1; i >= 1 && node.ast[i] !== "RULE" ; i--) {
-                        stack.push ({parents: [node.ast, node.parents], ast: node.ast[i], level: node.level + 1, index: i});
-                    }
-                    
-                    for(var i = node.ast.length - 1; i >= 1 && node.ast[i] === "RULE" ; i--) {
-                        stack.push ({parents: [node.ast, node.parents], ast: node.ast[i], level: node.level + 1, index: i});
-                    }
+        
+        let makeRules = function (sexpr) {
+            let rules = [];
+            for (let i = 1; i < sexpr.length; i++) {
+                let ruleName = sexpr[i][1];
+                if (!rules[ruleName]) {
+                    rules[ruleName] = [];
                 }
-                else if (node.ast[0] === "RULE") {
-                    var rule = node.ast;
-                    var v = [];
-                    var varsOffset = 0;
-                    if (rule[1][0] === "VAR") {
-                        varsOffset = 1;
-                        for (var j = 1; j < rule[1].length; j++) {
-                            if (-getLvl (rule[1][j]) !== 0){
-                                return {err: "Can not escape variable definition error", file: file, path: p.concat ([node.index, 1, j])};
-                            }
-                            v.push (rule[1][j]);
-                        }
-                    }
-                    
-                    var r = {read: [], write: []};
-                    for (var j = 1; j < rule[1 + varsOffset][1].length; j++) {
-                        r.read.push (rule[1 + varsOffset][1][j]);
-                    }
-                    
-                    for (var j = 1; j < rule[2 + varsOffset][1].length; j++) {
-                        r.write.push (rule[2 + varsOffset][1][j]);
-                    }
-                    
-                    r.read = Sexpr.flatten (r.read[0]);
-                    r.write = Sexpr.flatten (r.write[0]);
-                    
-                    r.read = levelShift (r.read, node.level);
-                    r.write = levelShift (r.write, node.level);
-                    
-                    r.maxLvlR = getMaxLvl (r.read, 0, r.read.length, v);
-                    r.maxLvlW = getMaxLvl (r.write, 0, r.write.length, v);
-                    
-                    rules.push ({vars: v, rule: r, level: node.level, parents: node.parents});
-                }
-            }
-
-            return rules;
-        };
-
-        var consumeCFG = function (rules, top, bot) {
-            var stack, item;
-            
-            memoCFG = [];
-            farthestPath = [];
-            top = Sexpr.flatten(top);
-            bot = Sexpr.flatten(bot);
-            stack = [{phase: "top"}];
-            stack.push ({
-                phase: "test-whole",
-                write: top,
-                fromW: 0,
-                toW: top.length,
-                read: bot,
-                fromR: 0,
-                toR: bot.length,
-                path: []
-            });
-            while (stack.length > 1) {
-                item = stack[stack.length - 1];
-                if (item.phase === "test-whole") {
-                    if (item.result === true) {
-                        if (item.toW - item.fromW === 1) {
-                            memoPutCFG (item.fromR, item.write[item.fromW], item.resultData);
-                        }
-                        
-                        stackPop (stack, true, item.resultData);
-                    }
-                    if (item.result === false) {
-                        stackPop (stack, false, item.resultData);
-                    }
-                    else if (item.toW - item.fromW === 1) {
-                        var memo = memoGetCFG (item.fromR, item.write[item.fromW]);
-                        if (memo && stack.length > 1) {
-                            stackPop (stack, true, memo);
-                        }
-                        else {
-                            if (levelSplit (item.write[item.fromW]).atom === "ATOMIC" & item.toR - item.fromR === 1) {
-                                stackPop (stack, true, item.read.slice (item.fromR, item.toR));
-                            }
-                            else if (levelSplit (item.write[item.fromW]).atom === "ANY") {
-                                stackPop (stack, true, item.read.slice (item.fromR, item.toR));
-                            }
-                            else if ((item.toR - item.fromR === 1 && getLvl (item.write[item.fromW]) === 0 && item.write[item.fromW] === item.read[item.fromR])) {
-                                stackPop (stack, true, [item.write[item.fromW]]);
-                            }
-                            else if (getLvl (item.write[item.fromW]) > 0){
-                                stack.push ({
-                                    phase: "rewrite",
-                                    ruleIndex: -1,
-                                    write: [item.write[item.fromW]],
-                                    fromW: 0,
-                                    toW: 1,
-                                    read: item.read,
-                                    fromR: item.fromR,
-                                    toR: item.toR,
-                                    path: item.path
-                                });
-                            }
-                            else {
-                                stackPop (stack, false, item.path);
-                            }
-                        }
-                    }
-                    else if (item.read[item.fromR] === "(") {
-                        stack.push ({
-                            phase: "test-parts",
-                            write: item.write,
-                            fromW: item.fromW + 1,
-                            toW: item.toW - 1,
-                            idxW: item.fromW + 1,
-                            read: item.read,
-                            fromR: item.fromR + 1,
-                            toR: item.toR - 1,
-                            idxR: item.fromR + 1,
-                            processData: [],
-                            path: [...item.path, 0]
-                        });
-                    }
-                    else {
-                        stackPop (stack, false, item.path);
-                    }
-                }
-                else if (item.phase === "test-parts") {
-                    if (item.result === false) {
-                        stackPop (stack, false, item.resultData);
-                    }
-                    else {
-                        
-                        if (item.result === true) {
-                            item.processData = [...item.processData, ...item.resultData];
-                            item.path[item.path.length - 1]++;
-                        }
-                        
-                        if (item.idxW === item.toW && item.idxR === item.toR) {
-                            stackPop (stack, true, ["(", ...item.processData, ")"]);
-                        }
-                        else if (item.idxW < item.toW && item.idxR < item.toR) {
-                            var fromW = item.idxW;
-                            var toW = getNextWhole (item.write, item.idxW);
-                            item.idxW = toW;
-                            var fromR = item.idxR;
-                            var toR = getNextWhole (item.read, item.idxR);
-                            item.idxR = toR;
-                            stack.push ({
-                                phase: "test-whole",
-                                write: item.write,
-                                fromW: fromW,
-                                toW: toW,
-                                read: item.read,
-                                fromR: fromR,
-                                toR: toR,
-                                path: item.path
-                            });
-                        }
-                        else {
-                            stackPop (stack, false, item.resultData);
-                        }
-                    }
-                }
-                else if (item.phase === "rewrite") {
-                    if (item.result === true) {
-                        stackPop (stack, true, item.resultData);
-                    }
-                    else {
-                        while (true) {
-                            item.ruleIndex++;
-                            if (item.ruleIndex === rules.length) {
-                                stackPop (stack, false, item.resultData);
-                                
-                                break;
-                            }
-                            else {
-                                if (rules[item.ruleIndex].rule.read[0] == item.write[0]) {
-                                    stack.push ({
-                                        phase: "test-whole",
-                                        write: rules[item.ruleIndex].rule.write,
-                                        fromW: 0,
-                                        toW: rules[item.ruleIndex].rule.write.length,
-                                        read: item.read,
-                                        fromR: item.fromR,
-                                        toR: item.toR,
-                                        path: item.path
-                                    });
-                                    
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
+                
+                let ruleBody = sexpr[i][2];
+                rules[ruleName].push (ruleBody);
             }
             
-            if (stack[0].result === true) {
-                return Sexpr.parse (stack[0].resultData.join(" "));
+            return rules
+        }
+        
+        let parse = function (expr, syntax) {
+            let rules = makeRules (syntax);
+            //let res = matchRule ("<start>", [expr], 0, rules);
+            let res = dispatch (syntax, [expr], 0, rules);
+            if (res.err) {
+                return {err: res.err, path: []};
             }
             else {
-                return {err: true, path: farthestPath};
+                return res[0];
             }
         }
         
-        var memoCFG;
-        var memoPutCFG = function (pos, key, value) {
-            if (!memoCFG[pos]) {
-                memoCFG[pos] = [];
+        let dispatch = function (pattern, expr, idx, rules) {
+            if (Array.isArray (pattern)) {
+                if (pattern[0] === "GROUP") {
+                    return matchGroup (pattern, expr, idx, rules);
+                }
+                else if (pattern[0] === "MUL") {
+                    return matchMul (pattern, expr, idx, rules);
+                }
+                else if (pattern[0] === "ADD") {
+                    return matchAdd (pattern, expr, idx, rules);
+                }
+                else if (pattern[0] === "STAR") {
+                    return matchStar (pattern, expr, idx, rules);
+                }
+                else if (pattern[0] === "SEQUENCE") {
+                    return matchSeq (pattern, expr, idx, rules);
+                }
+                else if (pattern[0] === "CHOICE") {
+                    return matchCho (pattern, expr, idx, rules);
+                }
+                else if (pattern[0] === "OPTIONAL") {
+                    return matchOpt (pattern, expr, idx, rules);
+                }
+                else if (pattern[0] === "ZEROORMORE") {
+                    return matchZOM (pattern, expr, idx, rules);
+                }
+                else if (pattern[0] === "ONEORMORE") {
+                    return matchOOM (pattern, expr, idx, rules);
+                }
+            }
+            else if (!Array.isArray (pattern)) {
+                if (pattern === "ZERO") {
+                    return {err: true};
+                }
+                else if (pattern === "ONE") {
+                    return [];
+                }
+                else if (pattern === "'" + expr[idx] + "'") {
+                    return expr[idx];
+                }
+                else if (pattern === "ATOMIC") {
+                    if (typeof expr[idx] === "string") {
+                        return expr[idx];
+                    }
+                    else {
+                        return {err: true}
+                    }
+                }
+                else if (pattern === "ANY") {
+                    if (Array.isArray (expr[idx])) {
+                        return [expr[idx]];
+                    }
+                    return expr[idx];
+                }
+                else if (pattern.charAt(0) === "<" && pattern.charAt(pattern.length - 1) === ">") {
+                    return matchRule (pattern, expr[idx], 0, rules);
+                }
             }
             
-            if (memoCFG[pos][key] === undefined && !memoCFG[pos].hasOwnProperty(key)) {
-                memoCFG[pos][key] = value;
-            }
+            return {err: true};
         }
         
-        var memoGetCFG = function (pos, key) {
-            if (memoCFG[pos] && memoCFG[pos][key] !== undefined && memoCFG[pos].hasOwnProperty(key)) {
-                return memoCFG[pos][key];
+        let matchRule = function (pattern, expr, idx, rules) {
+            let ruleSet = rules[pattern];
+            for (let i = 0; i < ruleSet.length; i++) {
+                let res = dispatch (ruleSet[i], [expr[idx]], 0, rules);
+                if (!res.err) {
+                    return res;
+                }
             }
-            else {
-                return undefined;
-            }
+            
+            return {err: true};
         }
 
-        var farthestPath;
-        var stackPop = function (stack, result, resultData) {
-            if (compareArr(stack[stack.length - 1].path || [], farthestPath) > 0) {
-                farthestPath = stack[stack.length - 1].path;
+        let matchGroup = function (pattern, expr, idx, rules) {
+            let res = dispatch (pattern[1], expr[idx], 0, rules)
+            if (res.err || res.length !== expr[idx].length) {
+                return {err: true};
             }
-            stack.pop ();
-
-            stack[stack.length - 1].result = result;
-            stack[stack.length - 1].resultData = resultData;
+            
+            return [res];
         }
 
-        var getNextWhole = function (tokens, idx) {
-            var parens = 0;
-            if (tokens[idx] === "(") {
-                do {
-                    if (tokens[idx] === "(") {
-                        parens++;
-                    }
-                    else if (tokens[idx] === ")") {
-                        parens--;
-                    }
-                    idx++;
-                } while (parens > 0)
+        let matchMul = function (pattern, expr, idx, rules) {
+            let res = [];
+            let d = 0;
+            
+            for (let i = 1; i < pattern.length; i++) {
+                if (expr.length <= i - 1 + d) {
+                    return {err:true};
+                }
                 
-                return idx;
-            }
-            else {
-                return idx + 1;
-            }
-        }
-
-        var compareArr = function (arr1, arr2) {
-            for (var i = 0; i < arr1.length; i++) {
-                if (i < arr2.length) {
-                    if (arr1[i] < arr2[i]) {
-                        return -1;
-                    }
-                    else if (arr1[i] > arr2[i]) {
-                        return 1;
-                    }
+                let el = dispatch (pattern[i], expr, idx + i - 1 + d, rules);
+                if (el.err) {
+                    return {err:true};
+                }
+                else if (typeof el === "string") {
+                    res.push (el);
                 }
                 else {
-                    break;
+                    res = [...res, ...el];
+                    d += el.length - 1;
                 }
             }
             
-            if (arr1.length < arr2.length) {
-                return -1;
-            }
-            else if (arr1.length > arr2.length) {
-                return 1;
-            }
-            else {
-                return 0;
-            }
+            return res;
         }
-
-        var levelSplit = function (atom) {
-            var vEsc, vAtm;
-            
-            if (atom === undefined) {
-                return {esc: -Infinity, atom: undefined};
+        
+        let matchAdd = function (pattern, expr, idx, rules) {
+            for (let i = 1; i < pattern.length; i++) {
+                let res = dispatch (pattern[i], expr, idx, rules);
+                if (!res.err) {
+                    return res;
+                }
             }
-            else {
-                vEsc = getLvl (atom);
-                if (vEsc < 0) {
-                    vAtm = atom.substring (-vEsc, atom.length);
+            
+            return {err:true}
+        }
+        
+        let matchStar = function (pattern, expr, idx, rules) {
+            let res = []
+            for (let i = idx; i < expr.length; i++) {
+                let el = dispatch (pattern[1], expr, i, rules)
+                if (!el.err) {
+                    res = [...res, ...el];
                 }
                 else {
-                    vAtm = atom.substring (0, atom.length - vEsc);
+                    return res;
                 }
-                
-                return {esc: vEsc, atom: vAtm};
-            }
-        }
-
-        var levelShift = function (tok, level) {
-            var idx = 0,result = [];
-            
-            while (idx < tok.length) {
-                var str = tok[idx];
-                if (str !== "(" && str !== ")" /*&&
-                    (str !== "ATOMIC" && str !== "COMPOUND" && str !== "ANY")*/
-                ) {
-                    for (var curLevelL = 0; curLevelL < str.length && str.charAt(curLevelL) === "\\"; curLevelL++);
-                    if ("\\".repeat (str.length) !== str) {
-                        for (var curLevelR = 0; str.length - curLevelR - 1 > 0 && str.charAt(str.length - curLevelR - 1) === "\\"; curLevelR++);
-                    }
-                    else {
-                        var curLevelR = 0;
-                    }
-                    
-                    var lft = curLevelL;
-                    var rgt = curLevelR;
-                    if (level > 0) {
-                        for (var i = 0; i < level; i++) {
-                            if (lft > 0) {
-                                lft--;
-                            }
-                            else {
-                                rgt++;
-                            }
-                        }
-                    }
-                    else {
-                        for (var i = 0; i > level; i--) {
-                            if (rgt > 0) {
-                                rgt--;
-                            }
-                            else {
-                                lft++;
-                            }
-                        }
-                    }
-
-                    var strMid = str.substring (curLevelL, str.length - curLevelR);
-                    var strLft = lft > 0 ? "\\".repeat (lft): "";
-                    var strRgt = rgt > 0 ? "\\".repeat (rgt): "";
-                    
-                    str = strLft + strMid + strRgt;
-                }
-                
-                result.push (str);
-                idx++;
             }
             
-            return result;
+            return res;
         }
 
-        var getLvl = function (str, vars) {
-            if (vars === undefined) vars  = [];
-            if (/*str !== "ATOMIC" && str !== "COMPOUND" && str !== "ANY" &&*/ str !== undefined /*&& vars.indexOf (str) === -1*/){
-                for (var curLevelL = 0; curLevelL < str.length && str.charAt(curLevelL) === "\\"; curLevelL++);
-                for (var curLevelR = 0; str.length - curLevelR - 1 > 0 && str.charAt(str.length - curLevelR - 1) === "\\"; curLevelR++);
-                
-                return curLevelL > 0 ? -curLevelL : curLevelR;
-            }
-            else {
-                return -Infinity ;
-            }
+        let matchSeq = function (pattern, expr, idx, rules) {
+            return dispatch (["GROUP", ["MUL", ...pattern.slice(1)]], expr, idx, rules);
         }
 
-        var getMaxLvl = function (tok, from, to, vars) {
-            var result = -Infinity;
-            if (Array.isArray (tok)) {
-                for (var i = from; i < tok.length; i++) {
-                    if (tok[i] !== "(" && tok[i] !== ")") {
-                        result = Math.max (result, getLvl (tok[i], vars));
-                    }
-                }
-                
-                return result;
-            }
+        let matchCho = function (pattern, expr, idx, rules) {
+            return dispatch (["ADD", ...pattern.slice(1)], expr, idx, rules);
         }
 
-        var getLvl = function (str, vars) {
-            if (vars === undefined) vars  = [];
-            if (/*str !== "ATOMIC" && str !== "COMPOUND" && str !== "ANY" &&*/ str !== undefined /*&& vars.indexOf (str) === -1*/){
-                for (var curLevelL = 0; curLevelL < str.length && str.charAt(curLevelL) === "\\"; curLevelL++);
-                for (var curLevelR = 0; str.length - curLevelR - 1 > 0 && str.charAt(str.length - curLevelR - 1) === "\\"; curLevelR++);
-                
-                return curLevelL > 0 ? -curLevelL : curLevelR;
-            }
-            else {
-                return -Infinity ;
-            }
+        let matchOpt = function (pattern, expr, idx, rules) {
+            return dispatch (["ADD", pattern[1], "ONE"], expr, idx, rules);
         }
 
+        let matchZOM = function (pattern, expr, idx, rules) {
+            return dispatch (["STAR", pattern[1]], expr, idx, rules);
+        }
+
+        let matchOOM = function (pattern, expr, idx, rules) {
+            return dispatch (["MUL", pattern[1], ["STAR", pattern[1]]], expr, idx, rules);
+        }
+        
         return {
-            consumeCFG: consumeCFG,
-            getRules: getRules
+            parse: parse,
+            makeRules: makeRules
         }
     }) ()
 );
@@ -437,20 +206,7 @@ var isNode = new Function ("try {return this===global;}catch(e){return false;}")
 if (isNode ()) {
     // begin of Node.js support
     
-    var Sexpr = require ("./s-expr.js");
     module.exports = Parser;
-    
-    function escapeRegExp(string) {
-      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-    }
-
-    function replaceAll(str, match, replacement){
-       return str.replace(new RegExp(escapeRegExp(match), 'g'), ()=>replacement);
-    }
-
-    if(typeof String.prototype.replaceAll === "undefined") {
-        String.prototype.replaceAll = function (match, replace) {return replaceAll (this.valueOf (), match, replace);};
-    }
     
     // end of Node.js support
 }

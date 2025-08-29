@@ -10,3 +10,4 @@
 - v0.1.x
     - first interpreter
     - syntax error catching
+    - new parser
