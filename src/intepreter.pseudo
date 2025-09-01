@@ -42,7 +42,7 @@ function run (graph: Graph, params: SExpr)
         if node in graph.edges
             edges = graph.edges[node]
         else
-            raise error "node does not exist"
+            error "node does not exist"
         
         loop2: for edge in edges
             for instr in edge.instructions

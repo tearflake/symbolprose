@@ -88,7 +88,7 @@ hi
 (
     GRAPH
 
-    /Step 1: Load input/
+    //Step 1: Load input
     (
         EDGE
         (SOURCE BEGIN)
@@ -96,7 +96,7 @@ hi
         (TARGET check)
     )
 
-    /Step 2: Check for foo/
+    //Step 2: Check for foo
     (
         EDGE
         (SOURCE check)
@@ -104,7 +104,7 @@ hi
         (TARGET match-foo)
     )
 
-    /Step 3: Check for bar/
+    //Step 3: Check for bar
     (
         EDGE
         (SOURCE check)
@@ -112,21 +112,21 @@ hi
         (TARGET match-bar)
     )
 
-    /Step 4: Fallback if no match/
+    //Step 4: Fallback if no match
     (
         EDGE
         (SOURCE check)
         (TARGET fallback)
     )
 
-    /Step 5: Match case foo/
+    //Step 5: Match case foo
     (
         EDGE (SOURCE match-foo)
         (INSTR (ASGN RESULT alpha))
         (TARGET END)
     )
 
-    /Step 6: Match case bar/
+    //Step 6: Match case bar
     (
         EDGE
         (SOURCE match-bar)
@@ -134,7 +134,7 @@ hi
         (TARGET END)
     )
 
-    /Step 7: Default case/
+    //Step 7: Default case
     (
         EDGE
         (SOURCE fallback)
@@ -152,7 +152,7 @@ foo
 (
     GRAPH
 
-    /Load Input and initialize accumulator/
+    //Load Input and initialize accumulator
     (
         EDGE
         (SOURCE BEGIN)
@@ -164,15 +164,15 @@ foo
         (TARGET loop)
     )
 
-    /Loop condition: if Input is ()/
+    //Loop condition: if Input is ()
     (
         EDGE
         (SOURCE loop)
         (INSTR (TEST Input ()))
-        (TARGET done) /go to done/
+        (TARGET done) //go to done
     )
     
-    /Fallback: Process one element/
+    //Fallback: Process one element
     (
         EDGE
         (SOURCE loop)
@@ -183,10 +183,10 @@ foo
             (ASGN Acc (PREPEND Head Acc))
             (ASGN Input Tail)
         )
-        (TARGET loop) /Continue looping/
+        (TARGET loop) //Continue looping
     )
 
-    /Final step: store reversed RESULT/
+    //Final step: store reversed RESULT
     (
         EDGE
         (SOURCE done)
@@ -205,7 +205,7 @@ foo
 (
     GRAPH
 
-    /Load variables/
+    //Load variables
     (
         EDGE
         (SOURCE BEGIN)
@@ -217,7 +217,7 @@ foo
         (TARGET loop)
     )
     
-    /Loop condition: if Input is ()/
+    //Loop condition: if Input is ()
     (
         EDGE
         (SOURCE loop)
@@ -226,10 +226,10 @@ foo
             (TEST List ())
             (ASGN RESULT false)
         )
-        (TARGET END) /done/
+        (TARGET END) //done
     )
     
-    /Loop condition: if Element is found/
+    //Loop condition: if Element is found
     (
         EDGE
         (SOURCE loop)
@@ -238,15 +238,15 @@ foo
             (TEST Element (FIRST List))
             (ASGN RESULT true)
         )
-        (TARGET END) /done/
+        (TARGET END) //done
     )
     
-    /Fallback: process next element in list/
+    //Fallback: process next element in list
     (
         EDGE
         (SOURCE loop)
         (INSTR (ASGN List (REST List)))
-        (TARGET loop) /Continue looping/
+        (TARGET loop) //Continue looping
     )
 )
 `,

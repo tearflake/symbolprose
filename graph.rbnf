@@ -1,10 +1,11 @@
-<start> := (GRAPH (NAME <ATOMIC>) (DEFINE <edge>+))
-         | (IMPORT <ATOMIC> <ATOMIC>)
-         | (IMPORT <ATOMIC>)
+<start> := (GRAPH <element>+)
+         | (FILE <ATOMIC>)
 
-<edge> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
-        | <start>
+<element> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
+           | (COMPUTE (NAME <ATOMIC>) <start>)
 
 <instruction> := (TEST <ANY> <ANY>)
                | (ASGN <ATOMIC> <ANY>)
+
+<compute-call> := (RUN <name> <params>)
 

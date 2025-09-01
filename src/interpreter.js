@@ -18,19 +18,19 @@ var Interpreter = (
         function parse (program) {
             let syntax = `
             (SEQUENCE
-                'GRAPH'
+                "GRAPH"
                 (ONEORMORE
                     (SEQUENCE
-                        'EDGE'
-                        (SEQUENCE 'SOURCE' ATOMIC)
+                        "EDGE"
+                        (SEQUENCE "SOURCE" ATOMIC)
                         (OPTIONAL
                             (SEQUENCE
-                                'INSTR'
+                                "INSTR"
                                 (ONEORMORE
                                     (CHOICE
-                                        (SEQUENCE 'TEST' ANY ANY)
-                                        (SEQUENCE 'ASGN' ATOMIC ANY)))))
-                        (SEQUENCE 'TARGET' ATOMIC))))
+                                        (SEQUENCE "TEST" ANY ANY)
+                                        (SEQUENCE "ASGN" ATOMIC ANY)))))
+                        (SEQUENCE "TARGET" ATOMIC))))
             `;
             
             let sSyntax = Sexpr.parse (syntax);
@@ -43,7 +43,7 @@ var Interpreter = (
             let ast = Parser.parse (sProgram, sSyntax);
             
             if (ast.err) {
-                let msg = Sexpr.getNode (program, ast.path);
+                let msg = Sexpr.getPosition (program, ast.path);
                 return {err: msg.err, found: msg.found, pos: msg.pos};
             }
             else {

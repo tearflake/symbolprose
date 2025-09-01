@@ -8,518 +8,233 @@ var Sexpr = (
     function (obj) {
         return {
             parse: obj.parse,
-            getNode: obj.getNode,
-            normalizeSexpr: obj.normalizeSexpr,
-            denormalizeSexpr: obj.denormalizeSexpr,
-            denormalizeIndexes: obj.denormalizeIndexes,
-            flatten: obj.flatten,
+            getPosition: obj.getPosition,
             stringify: obj.stringify
         };
     }
 ) (
     (function () {
-        var err = [];
-        //err[0] = "'\\t' character not allowed error";
-        //err[1] = "'\\u000B' character not allowed error";
-        err[2] = "Expected end of S-expression error";
-        err[3] = "Unexpected end of S-expression error";
-        err[4] = "Unicode string syntax error";
-        err[5] = "Block not terminated error";
-        err[6] = "Block not terminated error";
-        err[7] = "Unresolved block error";
-        err[8] = "Expected whitespace error";
-        err[9] = "Expected newline error";
-        err[10] = "Incorrect escaping error";
-        err[11] = "Can not use reserved character '*'";
-        
-        var parse = function (text) {
-            var m = createMatrix (text);
-            var p = parseMatrix (m);
-            return p;
-        }
-        
-        var createMatrix = function (text) {
-            var m, i;
-            
-            text = text.replaceAll ("\r\n", "\n").replaceAll ("\t", "    ").replaceAll ("\u000B", "");
-            m = text.split ("\n");
-            for (i = 0; i < m.length; i++) {
-                m[i] = m[i].split ("");
-            }
-            
-            return m;
-        }
-        
-        var fixPos = function (pos, m) {
-            return pos;
-            /*
-            var y = 0;
-            var x = 1;
-            pos = [pos.y, pos.x];
-            var line = ""
-            for (var i = 0; i < m[pos[y]].length; i++) {
-                line += m[pos[y]][i];
-            }
-            
-            var dist = 0;
-            for (var i = 0; i < pos[x]; i++) {
-                if (line.substr (i, 5) === '&and;') {
-                    dist += 2;
-                    i += 4;
-                }
-                else if (line.substr (i, 4) === '&or;') {
-                    dist += 2;
-                    i += 3;
-                }
-                else if (line.substr (i, 4) === '&sl;') {
-                    dist += 1;
-                    i += 3;
-                }
-                else if (line.substr (i, 4) === '&bs;') {
-                    dist += 1;
-                    i += 3;
-                }
-                else {
-                    dist += 1;
-                }
-            }
-            
-            return {y: pos[y], x: dist};
-            */
-        }
-        
-        var parseMatrix = function (m, verbose) {
-            var x, y, pos, i, tmpPos, stack, currChar, currAtom, val;
-            
-            y = 0;
-            x = 1;
-            pos = [0, 0];
-            stack = [];
-            while (pos[y] < m.length) {
-                currChar = m[pos[y]][pos[x]];
-                if (currChar === '/' || currChar === ' ' || currChar === undefined) {
-                    tmpPos = skipWhitespace (m, pos[y], pos[x]);
-                    if (tmpPos.err) {
-                        return {err: tmpPos.err, pos: fixPos (tmpPos.pos, m)};
-                    }
-                    
-                    if (m[tmpPos[y]] === undefined) {
-                        tmpPos[y] = m.length - 1;
-                        tmpPos[x] = 0;
-                        while (m[tmpPos[y]] && m[tmpPos[y]][tmpPos[x]] !== undefined) {
-                            tmpPos[x]++;
-                        }
-                        
-                        return {err: err[3], pos: fixPos ({y: tmpPos[y], x: tmpPos[x]}, m)};
-                    }
-                    
-                    pos = tmpPos;
-                }
-                else if (currChar === '(') {
-                    if (verbose) {
-                        stack.push ({val: [], pos: {y: pos[y], x: pos[x]}});
-                    }
-                    else {
-                        stack.push ([]);
-                    }
-                    
-                    pos[x]++;
-                }
-                else if (currChar === ')') {
-                    pos[x]++;
-                    if (stack.length > 1) {
-                        if (verbose) {
-                            stack[stack.length - 2].val.push (stack[stack.length - 1]);
-                        }
-                        else {
-                            stack[stack.length - 2].push (stack[stack.length - 1]);
-                        }
-                        stack.pop ();
-                    }
-                    else {
-                        if (verbose) {
-                            val = stack[stack.length - 1];
-                        }
-                        else {
-                            val = stack[stack.length - 1];
-                        }
-                        break;
-                    }
-                }
-                else if (' /()'.indexOf (currChar) === -1 && currChar !== undefined) {
-                    var start = {y: pos[y], x: pos[x]};
-                    var escaped = "";
-                    while (currChar === '\\') {
-                        escaped += currChar;
-                        pos[x]++;
-                        currChar = m[pos[y]][pos[x]];
-                    }
-                    
-                    if (currChar === '"') {
-                        currAtom = getBlock (m, pos, currChar);
-                        if (currAtom.err) {
-                            return {err: currAtom.err, pos: fixPos (currAtom.pos, m)};
-                        }
-                        else {
-                            pos[y] = currAtom.pos[y];
-                            pos[x] = currAtom.pos[x];
-                            currChar = m[pos[y]][pos[x]];
-                            var end = {y: pos[y], x: pos[x]};
-                            if (currAtom.val === "") {
-                                currAtom.val = "NIL"
-                            }
-                            
-                            if (escaped.length > 0) {
-                                if (currChar === '\\') {
-                                    return {err: err[10], pos: fixPos (start, m)};
-                                }
-                                else {
-                                    currAtom = escaped + currAtom.val;
-                                }
-                            }
-                            else {
-                                while (currChar === '\\') {
-                                    escaped += currChar;
-                                    pos[x]++;
-                                    currChar = m[pos[y]][pos[x]];
-                                }
-                                
-                                currAtom = currAtom.val + escaped;
-                            }
-                        }
-                    }
-                    else {
-                        currAtom = escaped;
-                        while (' /()"'.indexOf (currChar) === -1 && currChar !== undefined) {
-                            if (currChar === '*') {
-                                return {err: err[11], pos: fixPos ({y: pos[y], x: pos[x]}, m)};
-                            }
-                            currAtom += currChar;
-                            pos[x]++;
-                            currChar = m[pos[y]][pos[x]];
-                        }
-                        
-                        if (currAtom.charAt (0) === "\\" && currAtom.charAt (currAtom.length - 1) === "\\") {
-                            return {err: err[10], pos: fixPos (start, m)};
-                        }
-                    }
 
-                    if (stack.length > 0) {
-                        if (verbose) {
-                            stack[stack.length - 1].val.push ({val: currAtom, pos: start});
-                        }
-                        else {
-                            stack[stack.length - 1].push (currAtom);
-                        }
-                    }
-                    else {
-                        if (verbose) {
-                            val = {val: currAtom, pos: start}
-                        }
-                        else {
-                            val = currAtom;
-                        }
-                        break;
-                    }
-                }
+        function tokenize(input) {
+          let i = 0, line = 1, col = 1;
+          const tokens = [];
+
+          function advance(n = 1) {
+            while (n-- > 0) {
+              if (input[i] === "\n") { line++; col = 1; }
+              else col++;
+              i++;
             }
-            
-            pos = skipWhitespace (m, pos[y], pos[x]);
-            if (pos.err) {
-                return {err: pos.err, pos: fixPos (pos.pos, m)};
+          }
+
+          function peek(n = 0) { return input[i + n]; }
+
+          while (i < input.length) {
+            const ch = peek();
+
+            // whitespace
+            if (/\s/.test(ch)) { advance(); continue; }
+
+            // comments
+            if (input.startsWith("//", i)) {
+              while (i < input.length && peek() !== "\n") advance();
+              continue;
             }
-            
-            if (pos[y] < m.length && m[pos[y]][pos[x]] !== undefined) {
-                return {err: err[2], pos: fixPos ({y: pos[y], x: pos[x]}, m)};
+            if (input.startsWith("/*", i)) {
+              advance(2);
+              while (i < input.length && !input.startsWith("*/", i)) advance();
+              if (input.startsWith("*/", i)) advance(2);
+              continue;
             }
-            else {
-                return val;
-            }
-        }
-        
-        var skipWhitespace = function (m, row, col) {
-            var pos, x, y, i, j, k, currAtom;
-            
-            y = 0;
-            x = 1;
-            pos = [row, col];
-            while (pos[y] < m.length) {
-                while (m[pos[y]][pos[x]] === " ") {
-                    pos[x]++;
-                    if (m[pos[y]][pos[x]] === undefined) {
-                        break;
-                    }
-                }
-                
-                if (m[pos[y]][pos[x]] === '/') {
-                    currAtom = getBlock (m, pos, '/');
-                    if (currAtom.err) {
-                        return currAtom;
-                    }
-                    else {
-                        pos[y] = currAtom.pos[y];
-                        pos[x] = currAtom.pos[x];
-                    }
-                }
-                else if (m[pos[y]][pos[x]] !== undefined) {
+
+            // strings (single, double, or repeated)
+            if (ch === '"' || ch === "'") {
+              let quoteChar = ch;
+              let startLine = line, startCol = col;
+              let count = 0;
+              while (peek(count) === quoteChar) count++;
+              if (count === 1 || count % 2 === 0) {
+                advance();
+                let value = "";
+                let success = false;
+                while (i < input.length) {
+                  if (input[i] === '\n') return {err: "String not terminated", pos: {x: startCol - 1, y: startLine - 1}};
+                  if (input[i - 1] !== '\\' && input.startsWith(quoteChar, i)) {
+                    success = true;
+                    advance();
                     break;
+                  }
+                  value += peek();
+                  advance();
                 }
-                else {
-                    pos[x] = 0;
-                    pos[y]++;
+                if (quoteChar === '"') value = '"' + value + '"';
+                if (!success) return {err: "String not terminated", pos: {x: startCol - 1, y: startLine - 1}};
+                tokens.push({ type: "STRING", value, line: startLine, col: startCol });
+                continue;
+              } else {
+                advance(count);
+                var start, end;
+                end = i;
+                while (true) {
+                  while (input[end] !== undefined && input[end] !== ' ') {
+                      end--;
+                  }
+                  start = end;
+                  while (input[start] !== undefined && input[start] === ' ') {
+                      start--;
+                  }
+                  if (start === end) break;
+                  if (start < 0 || input[start] === '\n') {
+                    start++;
+                    end++;
+                    break;
+                  } else {
+                    end = start;
+                  }
                 }
-            }
-            
-            return [pos[y], pos[x]];
-        }
-        
-        var getBlock = function (m, pos, bound) {
-            var i, j, ws, numBounds1 = 0, numBounds2, x = 1, y = 0, currAtom = "", val;
-            var pos0 = [pos[y], pos[x]];
-            var pos1 = [pos[y], pos[x]];
-            if ('"/'.indexOf (bound) > -1) {
-                i = pos1[x];
-                numBounds1 = 0;
-                while (m[pos1[y]][i] === bound) {
-                    i++;
-                    numBounds1++;
+                  
+                if (!input.startsWith('\n', i)) {
+                  return {err:  "Expected newline", pos: {x: col - 1, y: line - 1}}
                 }
-                
-                if (numBounds1 === 1 || numBounds1 % 2 === 0) {
-                    currAtom = bound;
-                    pos1[x]++;
-                    var instr = false;
-                    while (m[pos1[y]][pos1[x]] !== undefined && ((m[pos1[y]][pos1[x]] !== bound) || instr)) {
-                        currAtom += m[pos1[y]][pos1[x]];
-                        pos1[x]++;
-                        if (bound === '/' && m[pos1[y]][pos1[x]] === '"') {
-                            instr = !instr;
-                        }
-                        if (m[pos1[y]][pos1[x] - 1] === '\\' && bound ==='"') {
-                            currAtom += m[pos1[y]][pos1[x]];
-                            pos1[x]++;
-                        }
-                    }
+                advance();
 
-                    if (m[pos1[y]][pos1[x]] === bound) {
-                        currAtom += m[pos1[y]][pos1[x]];
-                        if (bound === '"') {
-                            try {
-                                val = JSON.parse(currAtom).replaceAll ("\\", "&bsol;");
-                            }
-                            catch {
-                                return {err: err[4], pos: {y: pos0[y], x: pos0[x]}};
-                            }
-                        }
-                        else {
-                            val = currAtom;
-                        }
-                        
-                        return {pos: [pos1[y], pos1[x] + 1], val: val};
-                    }
-                    else {
-                        return {err: err[5], pos: {y: pos0[y], x: pos0[x]}};
-                    }
-                }
-                else {
-                    i = pos1[x] + numBounds1;
-                    while (true) {
-                        if (m[pos1[y]][i] === undefined) {
-                            break;
-                        }
-                        else if (m[pos1[y]][i] !== " ") {
-                            return {err: err[9], pos: {y: pos[y], x: i}};
-                        }
+                let prefix = input.substring(start, end);
+                let value = "";
+                let success = false;
+                while (i < input.length && input.startsWith(prefix, i)) {
+                  advance(prefix.length);
 
-                        i++;
+                  if (input.startsWith(quoteChar.repeat(count), i)) {
+                    if (ch === '"') {
+                      value = '"""\n' + value + '"""';
                     }
-                    
-                    ws = 0;
-                    while (m[pos1[y]][ws] === " ") {
-                        ws++;
+                    success = true;
+                    advance(count);
+                    break;
+                  }
+                  
+                  let lnStart = i;
+                  while (i < input.length && input[i] !== '\n') advance();
+                  value += input.substring(lnStart, i) + '\n';
+                  advance();
+                }
+
+                if (!success) {
+                  return {err: "String not terminated", pos: {x: startCol - 1, y: startLine - 1}};
+                }
+
+                tokens.push({ type: "STRING", value, line: startLine, col: startCol });
+                continue;
+              }
+            }
+
+            // parens
+            if (ch === "(") { tokens.push({ type: "LPAREN", line, col }); advance(); continue; }
+            if (ch === ")") { tokens.push({ type: "RPAREN", line, col }); advance(); continue; }
+
+            // atom
+            if (/[^()\s]/.test(ch)) {
+              let startLine = line, startCol = col;
+              let value = "";
+              while (i < input.length && !/[()\s]/.test(peek())) {
+                value += peek();
+                advance();
+              }
+              tokens.push({ type: "ATOM", value, line: startLine, col: startCol });
+              continue;
+            }
+
+            throw new Error(`Unexpected character '${ch}' at ${line}:${col}`);
+          }
+          return tokens;
+        }
+
+        function getAst(tokens) {
+          let pos = 0;
+          let positions = new Map();
+
+          function parseExpr() {
+            let tok = tokens[pos];
+
+            if (!tok)
+              return {err: "Unexpected end of s-expression", found: '""', pos: {x: 0, y: 0}}
+
+            if (tok.type === "LPAREN") {
+              pos++;
+              let list = [];
+              positions.set(list, { line: tok.line, col: tok.col });
+              while (tokens[pos] && tokens[pos].type !== "RPAREN") {
+                list.push(parseExpr());
+              }
+              if (!tokens[pos]) return {err: "Unclosed parenthesis", pos: {x: tok.col - 1, y: tok.line - 1}};
+              pos++; // consume RPAREN
+              return list;
+            }
+            if (tok.type === "ATOM" || tok.type === "STRING") {
+              pos++;
+              positions.set(tok, { line: tok.line, col: tok.col });
+              return tok;
+            }
+          }
+          
+          let ast = parseExpr();
+          if (tokens[pos] !== undefined) {
+            ast = {err: "Expected end of s-expression", found: tokens[pos].value, pos: {x: tokens[pos].col - 1, y: tokens[pos].line - 1}}
+            positions = null;
+          }
+
+          return { ast, positions };
+        }
+
+        function getPosition(code, indexPath) {
+          let tokens = tokenize(code);
+          const { ast, positions } = getAst(tokens);
+
+          let node = ast;
+          for (let idx of indexPath) {
+            if(!Array.isArray(node)) throw new Error("Path mismatch");
+            if(idx >= node.length){
+                if(node.length === 0) {
+                  return {
+                    err: "Missing list elements",
+                    found: "empty list",
+                    pos: {
+                        y: positions.get(node).line - 1,
+                        x: positions.get(node).col - 1
                     }
-                    
-                    pos1[y]++;
-                    pos1[x] = ws;
-                    while (pos1[y] < m.length) {
-                        for (i = 0; i < ws; i++) {
-                            if (m[pos1[y]][i] !== " " && m[pos1[y]][i] !== undefined) {
-                                //return {err: err[8], pos: {y: pos1[y], x: i}};
-                                return {err: err[6], pos: {y: pos0[y], x: pos0[x]}};
-                            }
-                        }
-                        
-                        if (m[pos1[y]][ws] === bound) {
-                            i = ws;
-                            numBounds2 = 0;
-                            while (m[pos1[y]][i] === bound) {
-                                i++;
-                                numBounds2++;
-                            }
-                            
-                            if (numBounds1 === numBounds2) {
-                                break;
-                            }
-                        }
-                        
-                        pos1[y]++;
+                  };
+                } else {
+                  return {
+                    err: "Missing list elements",
+                    found: "end of list",
+                    pos: {
+                        y: positions.get(node[node.length - 1]).line - 1,
+                        x: positions.get(node[node.length - 1]).col - 1 + node[node.length - 1].value.length
                     }
-                    
-                    if (pos1[y] < m.length) {
-                        return {pos: [pos1[y], pos1[x] + numBounds2], val: extractBlock (m, {begin: [pos0[y], ws], end: [pos1[y], ws + numBounds2]}).replaceAll ("\\", "&bsol;")};
-                    }
-                    else {
-                        return {err: err[6], pos: {y: pos[y], x: pos[x]}};
-                    }
+                  };
                 }
             }
+            node = node[idx];
+          }
+          return {err: "Syntax error", found: node.value, pos: {y: positions.get(node).line - 1, x: positions.get(node).col - 1}};
         }
         
-        var extractBlock = function (m, bounds) {
-            var i, j, x = 1, y = 0, currChar, val = "";
-            var pos = bounds.begin;
-            for (i = pos[y] + 1; i < bounds.end[y]; i++) {
-                for (j = pos[x]; m[i][j] !== undefined; j++) {
-                    val += m[i][j];
-                }
-                
-                val += "\n";
-            }
-            
-            return val;
+        function makeNodeTree(ast) {
+          if(ast.value !== undefined) {
+            return ast.value;
+          } else {
+            return ast.map (makeNodeTree);
+          }
         }
         
-        var getNode = function (text, path) {
-            text = text.replaceAll ('&amp;', '&').replaceAll ('&and;', '/\\').replaceAll('&or;', '\\/').replaceAll ('&sl;', '/'). replaceAll ('&bs;', '\\');
-            var x = 1, y = 0;
-            if (path.length === 0) {
-                var m = createMatrix(text);
-                var pos = skipWhitespace(m, 0, 0);
-                return {err: "Top node error", pos: {y: pos[y], x: pos[x]}};
-            }
-            else {
-                var expr = parseMatrix (createMatrix(text), true);
-                while (path.length > 0) {
-                    if (Array.isArray (expr.val)) {
-                        if (expr.val[path[0]] !== undefined) {
-                            expr = expr.val[path[0]];
-                            path.shift ();
-                        }
-                        else {
-                            return {err: "Syntax error", found: "missing list element(s)", pos: expr.pos};
-                        }
-                    }
-                    else {
-                        return {err: "Syntax error", found: "atom", pos: expr.pos};
-                    }
-                }
-                
-                return {err: "Syntax error", found: Array.isArray (expr.val) ? (expr.val.length === 0 ? "empty " : "") + "list" : quoteIfNecessary (expr.val), pos: expr.pos};
-            }
-        };
-        
-        var normalizeSexpr = function (expr) {
-            var stack = [], item;
-            var car = expr, cdr = [];
-            stack.push ({car: expr});
-            while (stack.length > 0) {
-                item = stack.pop ();
-                if (item.car !== undefined) {
-                    car = item.car;
-                    if (Array.isArray (car)) {
-                        stack.push ({cdr: cdr})
-                        cdr = [];
-                        for (var i = 0;  i < car.length; i++) {
-                            stack.push ({car: car[i]})
-                        }
-                    }
-                    else {
-                        cdr = [car, cdr];
-                    }
-                }
-                else {
-                    car = cdr;
-                    cdr = [car, item.cdr];
-                }
-            }
+        function parse(code) {
+          let tokens = tokenize(code);
+          if (tokens.err) return tokens;
+          const { ast, positions } = getAst(tokens);
+          if (ast.err)
+            return ast;
             
-            return car;
-        };
-        
-        var denormalizeSexpr = function (expr) {
-            var stack = [], item;
-            var atom = expr, list = [];
-            stack.push ({atom: expr});
-            while (stack.length > 0) {
-                item = stack.pop ();
-                if (item.atom) {
-                    var atom = item.atom;
-                    if (!Array.isArray(atom)) {
-                        list.unshift (atom);
-                    }
-                    else {
-                        stack.push ({list: list});
-                        list = [];
-                        while (atom.length === 2) {
-                            stack.push ({atom: atom[0]});
-                            atom = atom[1];
-                        }
-                    }
-                }
-                else {
-                    item.list.unshift (list);
-                    list = item.list;
-                }
-            }
-            
-            return list[0];
-        }
-        
-        var denormalizeIndexes = function (nm) {
-            var dnm = [];
-            var idx = 0;
-            for (var i = 0; i < nm.length; i++) {
-                if (nm[i] === 0) {
-                    dnm.push (idx);
-                    idx = 0;
-                }
-                else {
-                    idx++;
-                }
-            }
-            
-            if (idx > 0) {
-                dnm.push (idx);
-            }
-            
-            return dnm;
-        };
-        
-        var flatten = function (arr) {
-            var result = [], stack = [arr], item, i;
-            
-            if (arr === undefined) {
-                return [];
-            }
-            
-            while (stack.length > 0) {
-                item = stack.pop ();
-                if (item.arr) {
-                    result.push (")");
-                }
-                else if (Array.isArray (item)) {
-                    result.push ("(");
-                    stack.push ({arr: true});
-                    for (i = item.length - 1; i >= 0 ; i--) {
-                        stack.push (item[i]);
-                    }
-                }
-                else {
-                    result.push (quoteIfNecessary (item));
-                }
-            }
-            
-            return (result);
+          return makeNodeTree(ast);
         }
 
         function stringify (node) {
@@ -568,7 +283,6 @@ var Sexpr = (
                 }
             }
 
-            //return output.replaceAll ('&and;', '/\\').replaceAll('&or;', '\\/').replaceAll ('&sl;', '/'). replaceAll ('&bs;', '\\');
             return output;
         }
 
@@ -600,12 +314,8 @@ var Sexpr = (
 
         return {
             parse: parse,
-            getNode: getNode,
-            normalizeSexpr: normalizeSexpr,
-            denormalizeSexpr: denormalizeSexpr,
-            denormalizeIndexes: denormalizeIndexes,
-            stringify: stringify,
-            flatten: flatten
+            getPosition: getPosition,
+            stringify: stringify
         }
     }) ()
 );

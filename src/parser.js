@@ -28,12 +28,16 @@ var Parser = (
             return rules
         }
         
+        var path, farthestPath;
+        
         let parse = function (expr, syntax) {
-            let rules = makeRules (syntax);
+            //let rules = makeRules (syntax);
             //let res = matchRule ("<start>", [expr], 0, rules);
+            path = [];
+            farthestPath = path;
             let res = dispatch (syntax, [expr], 0, rules);
             if (res.err) {
-                return {err: res.err, path: []};
+                return {err: res.err, path: farthestPath};
             }
             else {
                 return res[0];
@@ -43,63 +47,70 @@ var Parser = (
         let dispatch = function (pattern, expr, idx, rules) {
             if (Array.isArray (pattern)) {
                 if (pattern[0] === "GROUP") {
-                    return matchGroup (pattern, expr, idx, rules);
+                    return ret (matchGroup (pattern, expr, idx, rules));
                 }
                 else if (pattern[0] === "MUL") {
-                    return matchMul (pattern, expr, idx, rules);
+                    return ret (matchMul (pattern, expr, idx, rules));
                 }
                 else if (pattern[0] === "ADD") {
-                    return matchAdd (pattern, expr, idx, rules);
+                    return ret (matchAdd (pattern, expr, idx, rules));
                 }
                 else if (pattern[0] === "STAR") {
-                    return matchStar (pattern, expr, idx, rules);
+                    return ret (matchStar (pattern, expr, idx, rules));
                 }
                 else if (pattern[0] === "SEQUENCE") {
-                    return matchSeq (pattern, expr, idx, rules);
+                    return ret (matchSeq (pattern, expr, idx, rules));
                 }
                 else if (pattern[0] === "CHOICE") {
-                    return matchCho (pattern, expr, idx, rules);
+                    return ret (matchCho (pattern, expr, idx, rules));
                 }
                 else if (pattern[0] === "OPTIONAL") {
-                    return matchOpt (pattern, expr, idx, rules);
+                    return ret (matchOpt (pattern, expr, idx, rules));
                 }
                 else if (pattern[0] === "ZEROORMORE") {
-                    return matchZOM (pattern, expr, idx, rules);
+                    return ret (matchZOM (pattern, expr, idx, rules));
                 }
                 else if (pattern[0] === "ONEORMORE") {
-                    return matchOOM (pattern, expr, idx, rules);
+                    return ret (matchOOM (pattern, expr, idx, rules));
                 }
             }
             else if (!Array.isArray (pattern)) {
                 if (pattern === "ZERO") {
-                    return {err: true};
+                    return ret ({err: true});
                 }
                 else if (pattern === "ONE") {
-                    return [];
+                    return ret ([]);
                 }
-                else if (pattern === "'" + expr[idx] + "'") {
-                    return expr[idx];
+                else if (pattern === '"' + expr[idx] + '"') {
+                    return ret (expr[idx]);
                 }
                 else if (pattern === "ATOMIC") {
                     if (typeof expr[idx] === "string") {
-                        return expr[idx];
+                        return ret (expr[idx]);
                     }
                     else {
-                        return {err: true}
+                        return ret ({err: true});
                     }
                 }
                 else if (pattern === "ANY") {
                     if (Array.isArray (expr[idx])) {
-                        return [expr[idx]];
+                        return ret ([expr[idx]]);
                     }
-                    return expr[idx];
+                    return ret (expr[idx]);
                 }
                 else if (pattern.charAt(0) === "<" && pattern.charAt(pattern.length - 1) === ">") {
-                    return matchRule (pattern, expr[idx], 0, rules);
+                    return ret (matchRule (pattern, expr[idx], 0, rules));
                 }
             }
             
-            return {err: true};
+            return ret ({err: true});
+        }
+        
+        let ret = function (val) {
+            if (compareArr(path, farthestPath) > 0) {
+                farthestPath = [...path];
+            }
+            return val;
         }
         
         let matchRule = function (pattern, expr, idx, rules) {
@@ -115,7 +126,9 @@ var Parser = (
         }
 
         let matchGroup = function (pattern, expr, idx, rules) {
+            path = [...path, 0]
             let res = dispatch (pattern[1], expr[idx], 0, rules)
+            path.pop ();
             if (res.err || res.length !== expr[idx].length) {
                 return {err: true};
             }
@@ -129,8 +142,11 @@ var Parser = (
             
             for (let i = 1; i < pattern.length; i++) {
                 if (expr.length <= i - 1 + d) {
+                    path[path.length - 1]++;
                     return {err:true};
                 }
+                
+                path[path.length - 1] = idx + i - 1 + d;
                 
                 let el = dispatch (pattern[i], expr, idx + i - 1 + d, rules);
                 if (el.err) {
@@ -144,6 +160,8 @@ var Parser = (
                     d += el.length - 1;
                 }
             }
+            
+            path[path.length - 1] = idx + pattern.length - 1 + d;
             
             return res;
         }
@@ -165,6 +183,7 @@ var Parser = (
                 let el = dispatch (pattern[1], expr, i, rules)
                 if (!el.err) {
                     res = [...res, ...el];
+                    path[path.length - 1] += el.length;
                 }
                 else {
                     return res;
@@ -194,6 +213,32 @@ var Parser = (
             return dispatch (["MUL", pattern[1], ["STAR", pattern[1]]], expr, idx, rules);
         }
         
+        var compareArr = function (arr1, arr2) {
+            for (var i = 0; i < arr1.length; i++) {
+                if (i < arr2.length) {
+                    if (arr1[i] < arr2[i]) {
+                        return -1;
+                    }
+                    else if (arr1[i] > arr2[i]) {
+                        return 1;
+                    }
+                }
+                else {
+                    break;
+                }
+            }
+            
+            if (arr1.length < arr2.length) {
+                return -1;
+            }
+            else if (arr1.length > arr2.length) {
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        }
+
         return {
             parse: parse,
             makeRules: makeRules
