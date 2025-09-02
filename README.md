@@ -27,7 +27,7 @@ The entire grammar of Symbolprose code files fits into only nine lines of relaxe
 <instruction> := (TEST <ANY> <ANY>)
                | (ASGN <ATOMIC> <ANY>)
 
-<compute-call> := (RUN <name> <params>)
+<compute-call> := (RUN <ATOMIC> <ANY>)
 ```
 
 Given these elements, in spite of being very minimalistic framework, Symbolprose is computationally complete.
