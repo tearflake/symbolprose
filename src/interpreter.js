@@ -16,9 +16,7 @@ var Interpreter = (
         "use strict";
         
         function parse (program) {
-            let syntax = 
-            
-            `
+            let syntax = `
             (SEQUENCE
                 "GRAPH"
                 (ONEORMORE
@@ -39,23 +37,6 @@ var Interpreter = (
                             (SEQUENCE "NAME" ATOMIC)
                             RECURSE))))
             `;
-            /*`
-            (SEQUENCE
-                "GRAPH"
-                (ONEORMORE
-                    (SEQUENCE
-                        "EDGE"
-                        (SEQUENCE "SOURCE" ATOMIC)
-                        (OPTIONAL
-                            (SEQUENCE
-                                "INSTR"
-                                (ONEORMORE
-                                    (CHOICE
-                                        (SEQUENCE "TEST" ANY ANY)
-                                        (SEQUENCE "ASGN" ATOMIC ANY)))))
-                        (SEQUENCE "TARGET" ATOMIC))))
-            `;
-            */
             let sSyntax = Sexpr.parse (syntax);
             let sProgram = Sexpr.parse (program);
             
@@ -115,6 +96,7 @@ var Interpreter = (
                         graph.item[source].push ({instructions: [], target: elem[2][1]});
                     }
                 }
+                // COMPUTE
                 else if (elem[0] === "COMPUTE") {
                     graph.children[elem[1][1]] = makeGraph (elem[2])
                     graph.children[elem[1][1]].parent = graph;
