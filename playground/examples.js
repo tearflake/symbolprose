@@ -1,20 +1,13 @@
 examples = {
 "echo":
 `
-(
-    GRAPH
-
-    (
-        EDGE
+(GRAPH
+   (EDGE
         (SOURCE BEGIN)
-        (
-            INSTR
+        (INSTR
             (ASGN X PARAMS)
-            (ASGN RESULT X)
-        )
-        (TARGET END)
-    )
-)
+            (ASGN RESULT X))
+        (TARGET END)))
 `,
 "echo-input":
 `
@@ -23,20 +16,13 @@ xyz
 
 "ping-pong":
 `
-(
-    GRAPH
-
-    (
-        EDGE
+(GRAPH
+   (EDGE
         (SOURCE BEGIN)
-        (
-            INSTR
+        (INSTR
             (TEST PARAMS ping)
-            (ASGN RESULT pong)
-        )
-        (TARGET END)
-    )
-)
+            (ASGN RESULT pong))
+        (TARGET END)))
 `,
 "ping-pong-input":
 `
@@ -45,38 +31,25 @@ ping
 
 "hi-bye":
 `
-(
-    GRAPH
-
-    (
-        EDGE
+(GRAPH
+    (EDGE
         (SOURCE BEGIN)
-        (
-            INSTR
+        (INSTR
             (TEST PARAMS hi)
-            (ASGN RESULT greeting)
-        )
-        (TARGET END)
-    )
+            (ASGN RESULT greeting))
+        (TARGET END))
 
-    (
-        EDGE
+    (EDGE
         (SOURCE BEGIN)
-        (
-            INSTR
+        (INSTR
             (TEST PARAMS bye)
-            (ASGN RESULT farewell)
-        )
-        (TARGET END)
-    )
+            (ASGN RESULT farewell))
+        (TARGET END))
 
-    (
-        EDGE
+    (EDGE
         (SOURCE BEGIN)
         (INSTR (ASGN RESULT unknown))
-        (TARGET END)
-    )
-)
+        (TARGET END)))
 `,
 "hi-bye-input":
 `
@@ -85,63 +58,47 @@ hi
 
 "foo-bar":
 `
-(
-    GRAPH
+(GRAPH
 
-    //Step 1: Load input
-    (
-        EDGE
+    // Step 1: Load input
+    (EDGE
         (SOURCE BEGIN)
         (INSTR (ASGN X PARAMS))
-        (TARGET check)
-    )
+        (TARGET check))
 
-    //Step 2: Check for foo
-    (
-        EDGE
+    // Step 2: Check for foo
+    (EDGE
         (SOURCE check)
         (INSTR (TEST X foo))
-        (TARGET match-foo)
-    )
+        (TARGET match-foo))
 
-    //Step 3: Check for bar
-    (
-        EDGE
+    // Step 3: Check for bar
+    (EDGE
         (SOURCE check)
         (INSTR (TEST X bar))
-        (TARGET match-bar)
-    )
+        (TARGET match-bar))
 
-    //Step 4: Fallback if no match
-    (
-        EDGE
+    // Step 4: Fallback if no match
+    (EDGE
         (SOURCE check)
-        (TARGET fallback)
-    )
+        (TARGET fallback))
 
-    //Step 5: Match case foo
-    (
-        EDGE (SOURCE match-foo)
+    // Step 5: Match case foo
+    (EDGE (SOURCE match-foo)
         (INSTR (ASGN RESULT alpha))
-        (TARGET END)
-    )
+        (TARGET END))
 
-    //Step 6: Match case bar
-    (
-        EDGE
+    // Step 6: Match case bar
+    (EDGE
         (SOURCE match-bar)
         (INSTR (ASGN RESULT beta))
-        (TARGET END)
-    )
+        (TARGET END))
 
-    //Step 7: Default case
-    (
-        EDGE
+    // Step 7: Default case
+    (EDGE
         (SOURCE fallback)
         (INSTR (ASGN RESULT unknown))
-        (TARGET END)
-    )
-)
+        (TARGET END)))
 `,
 "foo-bar-input":
 `
@@ -149,51 +106,37 @@ foo
 `,
 "reverse":
 `
-(
-    GRAPH
+(GRAPH
 
-    //Load Input and initialize accumulator
-    (
-        EDGE
+    // Load Input and initialize accumulator
+    (EDGE
         (SOURCE BEGIN)
-        (
-            INSTR
+        (INSTR
             (ASGN Input PARAMS)
-            (ASGN Acc ())
-        )
-        (TARGET loop)
-    )
+            (ASGN Acc ()))
+        (TARGET loop))
 
-    //Loop condition: if Input is ()
-    (
-        EDGE
+    // Loop condition: if Input is ()
+    (EDGE
         (SOURCE loop)
         (INSTR (TEST Input ()))
-        (TARGET done) //go to done
-    )
+        (TARGET done)) // go to done
     
-    //Fallback: Process one element
-    (
-        EDGE
+    // Fallback: Process one element
+    (EDGE
         (SOURCE loop)
-        (
-            INSTR
-            (ASGN Head (FIRST Input))
-            (ASGN Tail (REST Input))
-            (ASGN Acc (PREPEND Head Acc))
-            (ASGN Input Tail)
-        )
-        (TARGET loop) //Continue looping
-    )
+        (INSTR
+            (ASGN Head (RUN first Input))
+            (ASGN Tail (RUN rest Input))
+            (ASGN Acc (RUN prepend (Head Acc)))
+            (ASGN Input Tail))
+        (TARGET loop)) // Continue looping
 
-    //Final step: store reversed RESULT
-    (
-        EDGE
+    // Final step: store reversed RESULT
+    (EDGE
         (SOURCE done)
         (INSTR (ASGN RESULT Acc))
-        (TARGET END)
-    )
-)
+        (TARGET END)))
 `,
 "reverse-input":
 `
@@ -202,57 +145,77 @@ foo
 
 "is-element-of":
 `
-(
-    GRAPH
+(GRAPH
 
-    //Load variables
-    (
-        EDGE
+    // Load variables
+    (EDGE
         (SOURCE BEGIN)
-        (
-            INSTR
-            (ASGN Element (FIRST PARAMS))
-            (ASGN List (FIRST (REST PARAMS)))
-        )
-        (TARGET loop)
-    )
+        (INSTR
+            (ASGN Element (RUN first PARAMS))
+            (ASGN List (RUN first (RUN rest PARAMS))))
+        (TARGET loop))
     
-    //Loop condition: if Input is ()
-    (
-        EDGE
+    // Loop condition: if Input is ()
+    (EDGE
         (SOURCE loop)
-        (
-            INSTR
+        (INSTR
             (TEST List ())
-            (ASGN RESULT false)
-        )
-        (TARGET END) //done
-    )
+            (ASGN RESULT false))
+        (TARGET END)) // done
     
-    //Loop condition: if Element is found
-    (
-        EDGE
+    // Loop condition: if Element is found
+    (EDGE
         (SOURCE loop)
-        (
-            INSTR
-            (TEST Element (FIRST List))
-            (ASGN RESULT true)
-        )
-        (TARGET END) //done
-    )
+        (INSTR
+            (TEST Element (RUN first List))
+            (ASGN RESULT true))
+        (TARGET END)) // done
     
-    //Fallback: process next element in list
-    (
-        EDGE
+    // Fallback: process next element in list
+    (EDGE
         (SOURCE loop)
-        (INSTR (ASGN List (REST List)))
-        (TARGET loop) //Continue looping
-    )
-)
+        (INSTR (ASGN List (RUN rest List)))
+        (TARGET loop))) // Continue looping
 `,
 "is-element-of-input":
 `
 (2 (1 2 3 4))
+`,
+
+"factorial":
+`
+(GRAPH
+    (COMPUTE
+        (NAME fact)
+        (GRAPH
+            
+            // Base case: if PARAMS == 0 -> return 1
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (TEST PARAMS 0)
+                    (ASGN RESULT 1))
+                (TARGET END))
+
+            // Recursive case
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (ASGN n PARAMS)
+                    (ASGN n1 (RUN sub (n 1)))
+                    (ASGN rec (RUN fact n1))
+                    (ASGN RESULT (RUN mul (n rec))))
+                (TARGET END))))
+
+    // Top-level call
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR (ASGN RESULT (RUN fact PARAMS)))
+        (TARGET END)))
+`,
+"factorial-input":
+`
+5
 `
 }
 

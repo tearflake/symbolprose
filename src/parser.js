@@ -29,12 +29,13 @@ var Parser = (
         }
         
         var path, farthestPath;
-        
+        var topPattern;
         let parse = function (expr, syntax) {
             //let rules = makeRules (syntax);
             //let res = matchRule ("<start>", [expr], 0, rules);
             path = [];
             farthestPath = path;
+            topPattern = syntax;
             let res = dispatch (syntax, [expr], 0, rules);
             if (res.err) {
                 return {err: res.err, path: farthestPath};
@@ -98,9 +99,14 @@ var Parser = (
                     }
                     return ret (expr[idx]);
                 }
+                else if (pattern === "RECURSE") {
+                        return ret (dispatch (topPattern, expr, idx, rules));
+                }
+                /*
                 else if (pattern.charAt(0) === "<" && pattern.charAt(pattern.length - 1) === ">") {
                     return ret (matchRule (pattern, expr[idx], 0, rules));
                 }
+                */
             }
             
             return ret ({err: true});

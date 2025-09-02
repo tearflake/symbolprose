@@ -16,7 +16,30 @@ var Interpreter = (
         "use strict";
         
         function parse (program) {
-            let syntax = `
+            let syntax = 
+            
+            `
+            (SEQUENCE
+                "GRAPH"
+                (ONEORMORE
+                    (CHOICE
+                        (SEQUENCE
+                            "EDGE"
+                            (SEQUENCE "SOURCE" ATOMIC)
+                            (OPTIONAL
+                                (SEQUENCE
+                                    "INSTR"
+                                    (ONEORMORE
+                                        (CHOICE
+                                            (SEQUENCE "TEST" ANY ANY)
+                                            (SEQUENCE "ASGN" ATOMIC ANY)))))
+                            (SEQUENCE "TARGET" ATOMIC))
+                        (SEQUENCE
+                            "COMPUTE"
+                            (SEQUENCE "NAME" ATOMIC)
+                            RECURSE))))
+            `;
+            /*`
             (SEQUENCE
                 "GRAPH"
                 (ONEORMORE
@@ -32,7 +55,7 @@ var Interpreter = (
                                         (SEQUENCE "ASGN" ATOMIC ANY)))))
                         (SEQUENCE "TARGET" ATOMIC))))
             `;
-            
+            */
             let sSyntax = Sexpr.parse (syntax);
             let sProgram = Sexpr.parse (program);
             
@@ -52,7 +75,7 @@ var Interpreter = (
         }
         
         function makeGraph (sexpr) {
-            let graph = [];
+            let graph = {item: [], children: [], parent: null};
             // GRAPH
             let grph = sexpr;
             for (let i = 1; i < grph.length; i++) {
@@ -61,8 +84,8 @@ var Interpreter = (
                 if (elem[0] === "EDGE") {
                     // SOURCE
                     let source = elem[1][1];
-                    if (!graph[source] && !Object.prototype.hasOwnProperty.call(graph, source)) {
-                        graph[source] = [];
+                    if (!graph.item[source] && !Object.prototype.hasOwnProperty.call(graph.item, source)) {
+                        graph.item[source] = [];
                     }
                     
                     if (elem.length === 4) {
@@ -85,12 +108,16 @@ var Interpreter = (
                         }
                         
                         // TARGET
-                        graph[source].push ({instructions: instructionSet, target: elem[3][1]});
+                        graph.item[source].push ({instructions: instructionSet, target: elem[3][1]});
                     }
                     else if (elem.length === 3) {
                         // TARGET
-                        graph[source].push ({instructions: [], target: elem[2][1]});
+                        graph.item[source].push ({instructions: [], target: elem[2][1]});
                     }
+                }
+                else if (elem[0] === "COMPUTE") {
+                    graph.children[elem[1][1]] = makeGraph (elem[2])
+                    graph.children[elem[1][1]].parent = graph;
                 }
             }
             
@@ -112,7 +139,7 @@ var Interpreter = (
             return (Number.isNaN (a) && Number.isNaN (b)) ? true : false;
         }
 
-        function evalExpr(expr, env) {
+        function evalExpr(expr, graph, env) {
             if (!Array.isArray (expr)) {
                 if (typeof expr === "string") {
                     if (Object.prototype.hasOwnProperty.call (env, expr)) return env[expr];
@@ -121,12 +148,26 @@ var Interpreter = (
                 return expr;
             }
             
-            expr = expr.map(e => evalExpr (e, env));
+            expr = expr.map(e => evalExpr (e, graph, env));
             
             if (Array.isArray (expr)) {
-                const head = expr[0];
-                if (typeof head === "string" && BUILTINS[head]) {
-                    return BUILTINS[head] (expr);
+                if (expr[0] === "RUN") {
+                    if (expr.length !== 3) throw new Error("RUN expects 2 args");
+                    if (typeof expr[1] !== "string") throw new Error("RUN: first parameter must be atomic value");
+
+                    let parent = graph;
+                    while (parent) {
+                        let child = parent.children[expr[1]];
+                        if (child) {
+                            return runLowLevel (child, expr[2]);
+                        }
+                        parent = parent.parent;
+                    }
+
+                    if (!BUILTINS[expr[1]]) {
+                        throw new Error (`RUN: unknown compute item '${expr[1]}'`); 
+                    }
+                    return BUILTINS[expr[1]](expr[2]);
                 }
             }
           
@@ -155,7 +196,7 @@ var Interpreter = (
                         throw new Error (`Error - node can not be a list: ${node}`);
                     }
                     
-                    let edges = graph[node];
+                    let edges = graph.item[node];
                     if (!edges) {
                         throw new Error (`Uknown node: ${node}`);
                     }
@@ -165,20 +206,22 @@ var Interpreter = (
                         for (let j = 0; j < edge.instructions.length; j++) {
                             let instruction = edge.instructions[j];
                             if (instruction.name === "ASGN") {
-                                env[instruction.var] = evalExpr (instruction.value, env);
+                                env[instruction.var] = evalExpr (instruction.value, graph, env);
                             }
                             else if (instruction.name === "TEST") {
-                                const a = evalExpr (instruction.lft, env);
-                                const b = evalExpr (instruction.rgt, env);
+                                const a = evalExpr (instruction.lft, graph, env);
+                                const b = evalExpr (instruction.rgt, graph, env);
                                 if (!deepEqual (a, b)) {
                                     continue loop2;
                                 }
                             }
                         }
                         
-                        node = evalExpr (edge.target, env);
+                        node = evalExpr (edge.target, graph, env);
                         continue loop1;
                     }
+                    
+                    return {err: "Runtime error: no more fallback edges from node: " + node};
                 }
 
                 return env["RESULT"];

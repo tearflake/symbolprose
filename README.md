@@ -2,7 +2,7 @@
 // under construction //
 ```
 
-# symbolprose v0.1.10
+# symbolprose v0.3.0
 
 _**tags:** s-expression, intermediate-representation, imperative-programming_
 
@@ -16,23 +16,18 @@ _**Symbolprose**_ is a S-expression based, imperative programming framework. Its
 
 ## minimalistic approach
 
-The entire grammar of Symbolprose code files fits into only six lines of relaxed BNF code:
+The entire grammar of Symbolprose code files fits into only nine lines of relaxed BNF code:
 
 ```
-      <start> := (GRAPH <edge>+)
+<start> := (GRAPH <element>+)
 
-       <edge> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
+<element> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
+           | (COMPUTE (NAME <ATOMIC>) <start>)
 
 <instruction> := (TEST <ANY> <ANY>)
-               | (ASGN <ATOMIC> <ANY>)
-```
+               | (ASGN <ATOMIC> <ANY>)
 
-and there are only three builtin functions used for sub-structural transformations:
-
-```
-(PREPEND <ANY> <LIST>) -> <RESULT>
-(FIRST <LIST>)         -> <RESULT>
-(REST <LIST>)          -> <RESULT>
+<compute-call> := (RUN <name> <params>)
 ```
 
 Given these elements, in spite of being very minimalistic framework, Symbolprose is computationally complete.
@@ -42,15 +37,11 @@ Given these elements, in spite of being very minimalistic framework, Symbolprose
 To get a glimpse on how a Symbolprose program code looks like, we bring the "Hello world!" example:
 
 ```
-(
-    GRAPH
-    (
-        EDGE
+(GRAPH
+    (EDGE
         (SOURCE BEGIN)
-        (INSTR (ASGN Result "Hello world!"))
-        (TARGET END)
-    )
-)
+        (INSTR (ASGN RESULT 'Hello world!'))
+        (TARGET END)))
 ```
 
 ## resources

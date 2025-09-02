@@ -62,7 +62,7 @@ As an intertwined part of the above grammar, anywhere inside `<ANY>` S-expressio
 ("REST" <LIST>)          -> <LIST>
 ```
 
-In addition to the exposed grammar, user comments have no meaning to the system, but may be descriptive to readers, and may be placed wherever a whitespace is expected. Single line comments begin with`//` and span to the end of line. Multiline comments begin with `/*` and end with `*/`.
+In addition to the exposed grammar, user comments have no meaning to the system, but may be descriptive to readers, and may be placed wherever a whitespace is expected. Single line comments begin with `//` and span to the end of line. Multiline comments begin with `/*` and end with `*/`.
 
 ### 2.2. semantics
 

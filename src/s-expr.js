@@ -58,7 +58,11 @@ var Sexpr = (
                 let value = "";
                 let success = false;
                 while (i < input.length) {
-                  if (input[i] === '\n') return {err: "String not terminated", pos: {x: startCol - 1, y: startLine - 1}};
+                  if (input[i] === '\n')
+                    return {
+                      err: "String not terminated",
+                      pos: {x: startCol - 1, y: startLine - 1}
+                    };
                   if (input[i - 1] !== '\\' && input.startsWith(quoteChar, i)) {
                     success = true;
                     advance();
@@ -68,7 +72,11 @@ var Sexpr = (
                   advance();
                 }
                 if (quoteChar === '"') value = '"' + value + '"';
-                if (!success) return {err: "String not terminated", pos: {x: startCol - 1, y: startLine - 1}};
+                if (!success)
+                  return {
+                    err: "String not terminated",
+                    pos: {x: startCol - 1, y: startLine - 1}
+                  };
                 tokens.push({ type: "STRING", value, line: startLine, col: startCol });
                 continue;
               } else {
@@ -94,7 +102,7 @@ var Sexpr = (
                 }
                   
                 if (!input.startsWith('\n', i)) {
-                  return {err:  "Expected newline", pos: {x: col - 1, y: line - 1}}
+                  return {err: "Expected newline", pos: {x: col - 1, y: line - 1}}
                 }
                 advance();
 
@@ -120,7 +128,10 @@ var Sexpr = (
                 }
 
                 if (!success) {
-                  return {err: "String not terminated", pos: {x: startCol - 1, y: startLine - 1}};
+                  return {
+                    err: "String not terminated",
+                    pos: {x: startCol - 1, y: startLine - 1}
+                  };
                 }
 
                 tokens.push({ type: "STRING", value, line: startLine, col: startCol });
@@ -137,6 +148,8 @@ var Sexpr = (
               let startLine = line, startCol = col;
               let value = "";
               while (i < input.length && !/[()\s]/.test(peek())) {
+                if (input[i] === '/' && (input [i + 1] === '/' || input [i + 1] === '*'))
+                  break;
                 value += peek();
                 advance();
               }
@@ -166,7 +179,11 @@ var Sexpr = (
               while (tokens[pos] && tokens[pos].type !== "RPAREN") {
                 list.push(parseExpr());
               }
-              if (!tokens[pos]) return {err: "Unclosed parenthesis", pos: {x: tok.col - 1, y: tok.line - 1}};
+              if (!tokens[pos])
+                return {
+                  err: "Unclosed parenthesis",
+                  pos: {x: tok.col - 1, y: tok.line - 1}
+                };
               pos++; // consume RPAREN
               return list;
             }
@@ -179,7 +196,11 @@ var Sexpr = (
           
           let ast = parseExpr();
           if (tokens[pos] !== undefined) {
-            ast = {err: "Expected end of s-expression", found: tokens[pos].value, pos: {x: tokens[pos].col - 1, y: tokens[pos].line - 1}}
+            ast = {
+              err: "Expected end of s-expression",
+              found: tokens[pos].value,
+              pos: {x: tokens[pos].col - 1, y: tokens[pos].line - 1}
+            }
             positions = null;
           }
 
@@ -192,7 +213,13 @@ var Sexpr = (
 
           let node = ast;
           for (let idx of indexPath) {
-            if(!Array.isArray(node)) throw new Error("Path mismatch");
+            if(!Array.isArray(node))
+              return {
+                err: "Syntax error",
+                found: node.value,
+                pos: {y: positions.get(node).line - 1, x: positions.get(node).col - 1}
+              };
+            
             if(idx >= node.length){
                 if(node.length === 0) {
                   return {
@@ -216,7 +243,11 @@ var Sexpr = (
             }
             node = node[idx];
           }
-          return {err: "Syntax error", found: node.value, pos: {y: positions.get(node).line - 1, x: positions.get(node).col - 1}};
+          return {
+            err: "Syntax error",
+            found: node.value,
+            pos: {y: positions.get(node).line - 1, x: positions.get(node).col - 1}
+          };
         }
         
         function makeNodeTree(ast) {
@@ -293,19 +324,14 @@ var Sexpr = (
             
             var quoted = false;
             for (var i = 0; i < str.length; i++) {
-                if (str === "" || '/() \t\n\r'.indexOf (str.charAt (i)) > -1) {
+                if (str === "" || '() \t\n\r'.indexOf (str.charAt (i)) > -1) {
                     quoted = true;
                     break;
                 }
             }
             
-            if ("\\".repeat (str.length) === str) {
-                return str + 'NIL';
-            }
-            else if (quoted || str.indexOf ("&bsol;") > -1) {
-                for (var i = 0; i < str.length && str.charAt(i) === "\\"; i++);
-                for (var j = i; j < str.length && str.charAt(j) !== "\\"; j++);
-                return str.substring(0, i) + JSON.stringify(str.substring(i, j).replaceAll ("&bsol;", "\\")) + str.substring(j, str.length);
+            if (quoted) {
+                return "'" + str + "'";
             }
             else {
                 return str;
