@@ -1,311 +1,306 @@
-
-    // under construction //
-
-# Symbolprose Specification
+# Symbolprose
 
 > **[about document]**  
-> Introduction to *Symbolprose* imperative programming system operating on S-expressions.
+> Introduction to *Symbolprose* symbol processing framework
 >
 > **[intended audience]**  
-> Advanced users in imperative programming
+> Advanced programmers
 > 
 > **[abstract]**  
-> ...Symbolprose resembles a directed graph structure where instruction execution flow follows the graph edges from beginning to ending node, possibly visiting intermediate nodes in between. The graph edges host instruction sequences that query and modify global variables to produce the final result relative to the passed parameters. The execution is deterministic where multiple edges from the same node may be tested canonically to succeed, repetitively transitioning to the next node in the entire execution sequence...
+> Symbolprose is a minimalist graph-based language where programs are expressed as nodes and edges with simple instructions. It serves as both a compact virtual machine model and a compilation target, emphasizing clarity, recursion, and fast execution through S-expression syntax.
 
 ## table of contents
 
 - [1. introduction](#1-introduction)  
 - [2. theoretical background](#2-theoretical-background)  
-    - [2.1. syntax](#21-syntax)  
-    - [2.2. semantics](#22-semantics)  
-- [3. tutorial examples](#3-tutorial-examples)  
+    - [2.1. formal syntax](#21-formal-syntax)  
+    - [2.2. informal semantics](#22-informal-semantics)  
+- [3. examples](#3-examples)  
 - [4. conclusion](#4-conclusion)  
 
 ## 1. introduction
 
-*Symbolprose* aims to be a minimalistic and simplistic platform defined by very simple syntax and simple computing rules. It is intended to be relatively fast and computationally complete compilation target platform for other, more user friendly languages.
+Symbolprose is a minimalist programming language designed to serve as both a virtual machine target and a concise medium for expression. Its purpose is twofold:  
+1. To provide a low-level but structured execution model, allowing efficient compilation from higher-level languages.  
+2. To preserve simplicity in syntax and semantics, lowering the barrier of adoption and making the execution model easy to reason about.  
 
-Symbolprose implements a control flow of imperative programming paradigm in its own way where the sequential assignment of values to variables remains the key to computation, but the branching rules take their own implicit form inspired by finite state machines. In an attempt to make it as simple as possible, its implementation does not bother with constructs such as function and procedure declarations because the framework is meant to be plugged into a controlling system that specifically handles such declaration constructs.
+At its core, Symbolprose embodies the philosophy that computational constructs should be both minimal and compositional. By expressing computation as graphs of nodes and edges with simple instructions, Symbolprose achieves a balance between being close to the machine while still remaining human-readable.  
 
-In this exposure we will skim over syntax, semantics, and a few representative examples of coding in Symbolprose. Since the matter covered by this exposure indirectly relates to the concept of compiling to Symbolprose target virtual machine, novice programmers probably won't find this report very interesting, but the more advanced programmers may find something of their interest. The unusual approach to programming from the perspective of Symbolprose might be worth investigating by even a bit of curious programmers.
+This document specifies the language, its syntax, semantics, and illustrates its use through a few examples.  
 
 ## 2. theoretical background
 
-Symbolprose is a computing platform that operates on S-expressions. S-expression (or symbolic expression) is a data structure that may be represented by an atomic value or a list of other S-expressions, thus possibly constituting elements, lists and trees of data. It is popularized by the Lisp programming language which emphasizes S-expression suitability to represent both code and data.
+Symbolprose is intended to represent a fast-executing virtual machine and a compiling target from higher level languages. It provides a functionality trade-off between lower level and higher level programming constructs. The complexity of Symbolprose is intentionally kept simple to take advantage of the potential for its core being cached by the underlying processor unit. At the same time, simple grammar and semantics lower a barrier for a possible programming adoption. Lastly, there may be some beauty factor in pursuing a pure minimalism as a desirable property of any system.
 
-Coding in Symbolprose is inspired by a structure of finite state machines (FSM). FSMs belong to a class of automata that can be in one of a finite set of states during the program execution. As the FSM program executes, the state transition process is guiding its current actions and responsiveness to outside events. FSMs are easily represented by directed graphs with nodes representing states and edges representing transitions. 
+### 2.1. formal syntax
 
-Likewise, Symbolprose resembles a directed graph structure where instruction execution flow follows the graph edges from beginning to ending node, possibly visiting intermediate nodes in between. The graph edges host instruction sequences that query and modify global variables to produce the final result relative to the passed parameters. The execution is deterministic where multiple edges from the same node may be tested canonically to succeed, repetitively transitioning to the next node in the entire execution sequence.
-
-Symbolprose is made Turing complete since it is intended to host a variety of code formations compiled from arbitrary higher level programming frameworks. It represents an abstract computing platform where we can extract any symbolic result from any symbolic parameters, depending on the programming code we run within Symbolprose definition bounds.
-
-### 2.1. syntax
-
-In computer science, the syntax of a computer language is the set of rules that defines the combinations of symbols that are considered to be correctly structured statements or expressions in that language. Symbolprose code itself resembles a kind of S-expression. In Symbolprose code, the first list element to the left determines a type of a list. There are a few predefined list types used for coding, depicted by the following relaxed kind of Backus-Naur form syntax rules:
+In computer science, the syntax of a computer language is the set of rules that defines the combinations of symbols that are considered to be correctly structured statements or expressions in that language. Symbolprose language itself resembles a kind of S-expression. S-expressions consist of lists of atoms or other S-expressions where lists are surrounded by parenthesis. In Symbolprose, the first list element to the left determines a type of a list. There are a few predefined list types used for data transformation depicted by the following relaxed kind of Backus-Naur form syntax rules:
 
 ```
-<start>       := (GRAPH <edge>+)
+<start> := (GRAPH <element>+)
+         | (FILE <ATOMIC>)
 
-<edge>        := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
+<element> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
+           | (COMPUTE (NAME <ATOMIC>) <start>)
 
 <instruction> := (TEST <ANY> <ANY>)
-               | (ASGN <ATOMIC> <ANY>)
+               | (ASGN <ATOMIC> <ANY>)
+
+<compute-call> := (RUN <name> <params>)
 ```
+
+The above grammar defines the syntax of Symbolprose. To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the *Symbolprose* language.
 
 To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the Symbolprose language.
 
-As an intertwined part of the above grammar, anywhere inside `<ANY>` S-expression, there may be placed any of the three builtin functions:  
-
-```
-("PREPEND" <ANY> <LIST>) -> <LIST>
-("FIRST" <LIST>)         -> <ANY>
-("REST" <LIST>)          -> <LIST>
-```
-
+Atoms may be enclosed within `'` characters  if we want to include special characters used in the grammar. Strings are enclosed between `"` characters. Multiline atoms and strings are enclosed between an odd number of `'` or `"` characters. 
+ 
 In addition to the exposed grammar, user comments have no meaning to the system, but may be descriptive to readers, and may be placed wherever a whitespace is expected. Single line comments begin with `//` and span to the end of line. Multiline comments begin with `/*` and end with `*/`.
 
-### 2.2. semantics
+### 2.2 informal semantics
 
-Semantics of Symbolprose, as a study of meaning, reference, or truth of Symbolprose, may be defined in different ways. For this occasion, we choose a nested bulleted list explanation of how different Symbolprose code elements behave:
+Using S-expressions, Symbolprose defines its model of execution as instruction control flow based on graphs. Graphs consist of nodes and edges which connect nodes. Each node can have multiple edges, each representing a path that a program decides to take during its execution.
 
-- A program is contained within the `(GRAPH ...)` clause
-    - Variables
-        - Built‑in variable `Params` contains the incoming parameter S-expression.
-        - Builtin variable `Result` is where the final output S-expression must be stored.
-    - Edges
-        - Each `(EDGE ...)` specifies a `SOURCE` node, optional `INSTR` instructions, and a `TARGET` node.
-            - Execution of a program follows the graph model. The graph begins at the special node `begin` and terminates at `end`.
-            - Instructions (in `INSTR`)
-                - `(TEST expr1 expr2)`
-                    - Evaluate `expr1` and `expr2` and compare them.
-                    - If equal, continue; otherwise skip to the next outgoing edge.
-                - `(ASGN var expr)`
-                    - Evaluate `expr` and bind its value to `var`.
-        - Outgoing edges from a given node are evaluated in declaration order; the first whose `TEST`s all pass is taken.
-        - If there are no more edges to try, execution halts with an error.
-- Built‑in Functions:
-    - `(prepend elem lst)` prepends element `elem` to the list `lst`
-    - `(first lst)` returns the first element of the list `lst`
-    - `(rest lst)` returns the remaining elements of the list `lst`
+### programs
 
-Hopefully complete enough, the above structured explanation may serve as a semantic specification of Symbolprose. But since the theory is only one side of a medal in a learning process, the rest of this exposure deals with various examples of coding in Symbolprose, possibly completing the definition process.
+In Symbolprose, graphs represent programs. Here, special nodes `BEGIN` and `END` denote entry and exit point to a program depicted by a graph. In between, there can be arbitrary many other nodes with their own edges, drawing possible program execution lines from the `BEGIN` node to the `END` node.
 
-## 3. tutorial examples
+### instructions
 
-We selected a few representative examples to study how Symbolprose behaves in different situations. These examples should be simple enough even for novice programmers to follow, thus revealing the Symbolprose execution process in practice. Nevertheless, the examples serve merely as an indication to possibilities that can be brought to light by an eye of more experienced programmers.
+Edges are places where actual execution of instructions are done. Each edge `EDGE` defines `SOURCE` and `TARGET` nodes, while the edge `INSTR` section holds the instructions to execute in sequence. There are two types of instructions: `ASGN` and `TEST`.
 
-#### `Params` and `Result`variables
+`ASGN` instructions take two parameters: a variable name and a S-expression value that is going to be assigned to the variable. The variables are created when they are used for the first time. Before assignment of S-expressions, they are evaluated, substituting contained variables for their values. `ASGN` instructions always succeed and the execution flow continues to the next instruction in the sequence.
 
-The first example takes any S-expression as a parameter, and simply returns it unchanged as a result:
+`TEST` instructions also take two parameters: expressions which are about to be compared for being equal. Also using the variable substitution, if the parameters are equal to the last consisting atom, the execution flow continues to the next instruction in the sequence. If the parameters are not equal, the branching happens, and the next edge from the same source node is selected for execution. There is no backtracking which cancels the `ASGN` effects from the past instruction sequences. Instead, the control flow is just switched to the beginning of the next edge sequence. When all the edges from the same source node fail to execute, a runtime error is triggered.
 
-```
-(
-    GRAPH
-    (
-        EDGE
-        (SOURCE begin)
-        (
-            INSTR
-            (ASGN X Params)
-            (ASGN Result X)
-        )
-        (TARGET end)
-    )
-)
-```
+Finally, when all the instructions from the current `INSTR` sequence succeed, the program control flow continues to the `TARGET` node, trying to execute further edges that branch from the current node. We can consider each instruction sequence labeled by the `SOURCE` section name, while the `TARGET` section name serves as a kind of "goto" command mechanism. Also, a variable can be used in `TARGET` sections, making a case for "computed goto" behavior. Naturally, it is possible to form loops targeting the past nodes, but we have to carefully set up `TEST` conditions to break out of them if we don't want an infinite loop to appear.
 
-We used a variable `X` as a helper to show that `(INSTR ...)` clause can hold more than one instruction in a sequence.
+### internal variables
 
-#### test condition
+There are two predefined variables in each graph: `PARAMS` and `RESULT`. When executing a graph, we pass an input which is assigned to the `PARAMS` variable at the beginning of the execution. During the execution, we may assign a value to the `RESULT` builtin variable. On the end of execution, the contents of the `RESULT` builtin variable is returned as an output of the program.
 
-The next example accepts an S-expression as a parameter. If the expression equals `ping`, the example returns `pong`. Otherwise it halts reporting a runtime error. To have the code functioning this way, we use `(TEST ...)` clause that either continues to the next instruction, or tries to fall to the next, non existing branch:
+### relating programs in a structure
+
+Graphs can be nested using `COMPUTE` sections, syntactically recursing the graph structure, providing a structure and isolation method to our programs. `COMPUTE` section defines its name and a graph. Here, graphs behave like sub-programs with their own input, output, and variable environment. Graphs defined within the nested `COMPUTE` sections, are executed using a special `RUN` calling instruction which takes two parameters: a graph name and input to the graph. `RUN` calling instructions may be placed wherever program variables may appear, thus computing their results from the passed parameters. Only parent and their siblings graphs are visible to a specific `RUN` instruction.
+
+## 3. examples
+
+Below are a few illustrative examples of Symbolprose programs. 
+
+### Example 1: echo
+
+This program simply echoes its input:
 
 ```
-(
-    GRAPH
-    (
-        EDGE
-        (SOURCE begin)
-        (
-            INSTR
-            (TEST Params ping)
-            (ASGN Result pong)
-        )
-        (TARGET end)
-    )
-)
+(GRAPH
+   (EDGE
+        (SOURCE BEGIN)
+        (INSTR
+            (ASGN X PARAMS)
+            (ASGN RESULT X))
+        (TARGET END)))
 ```
 
-#### multiple nodes
+### Example 2: ping-pong
 
-Of course, we can have multiple edges from the same node. The following example takes `hi`, `bye`, or something else as a parameter. If the parameter is `hi`, it returns `greeting`. If the parameter is `bye`, it returns `farewell`. Otherwise, the code fallbacks returning `unknown` as a result:
-
-```
-(
-    GRAPH
-
-    (
-        EDGE
-        (SOURCE begin)
-        (
-            INSTR
-            (TEST Params hi)
-            (ASGN Result greeting)
-        )
-        (TARGET end)
-    )
-
-    (
-        EDGE
-        (SOURCE begin)
-        (
-            INSTR
-            (TEST Params bye)
-            (ASGN Result farewell)
-        )
-        (TARGET end)
-    )
-
-    (
-        EDGE
-        (SOURCE begin)
-        (INSTR (ASGN Result unknown))
-        (TARGET end)
-    )
-)
-```
-
-#### multiple intermediate nodes
-
-We can also have multiple intermediate nodes between `begin` and `end` nodes. In this example, if we pass `foo`, we get `alpha`. If we pass `bar`, we get `beta`. Otherwise, we get `unknown`:
+The program outputs `pong` when the input is `ping`, otherwise it raises an error:
 
 ```
-(
-    GRAPH
-
-    /Step 1: Load input/
-    (
-        EDGE
-        (SOURCE begin)
-        (INSTR (ASGN X Params))
-        (TARGET check)
-    )
-
-    /Step 2: Check for foo/
-    (
-        EDGE
-        (SOURCE check)
-        (INSTR (TEST X foo))
-        (TARGET match-foo)
-    )
-
-    /Step 3: Check for bar/
-    (
-        EDGE (SOURCE check)
-        (INSTR (TEST X bar))
-        (TARGET match-bar)
-    )
-
-    /Step 4: Fallback if no match/
-    (
-        EDGE
-        (SOURCE check)
-        (TARGET fallback)
-    )
-
-    /Step 5: Match case foo/
-    (
-        EDGE (SOURCE match-foo)
-        (INSTR (ASGN Result alpha))
-        (TARGET end)
-    )
-
-    /Step 6: Match case bar/
-    (
-        EDGE
-        (SOURCE match-bar)
-        (INSTR (ASGN Result beta))
-        (TARGET end)
-    )
-
-    /Step 7: Default case/
-    (
-        EDGE (SOURCE fallback)
-        (INSTR (ASGN Result unknown))
-        (TARGET end)
-    )
-)
+(GRAPH
+   (EDGE
+        (SOURCE BEGIN)
+        (INSTR
+            (TEST PARAMS ping)
+            (ASGN RESULT pong))
+        (TARGET END)))
 ```
 
-#### looping
+### Example 3: hi-bye
 
-Finally, we get to a more interesting example of reversing a list. To do this, we make use of `first`, `rest`, and `prepend` builtin functions:
+Program answers `greeting` on input `hi`, `farewell` on input `bye`, or `unknown` otherwise:
 
 ```
-(
-    GRAPH
-    (VAR Input Acc Head Tail)
+(GRAPH
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR
+            (TEST PARAMS hi)
+            (ASGN RESULT greeting))
+        (TARGET END))
 
-    /Load Input and initialize accumulator/
-    (
-        EDGE
-        (SOURCE begin)
-        (
-            INSTR
-            (ASGN Input Params)
-            (ASGN Acc ())
-        )
-        (TARGET loop)
-    )
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR
+            (TEST PARAMS bye)
+            (ASGN RESULT farewell))
+        (TARGET END))
 
-    /Loop condition: if Input is not (), process one element/
-    (
-        EDGE
-        (SOURCE loop)
-        (INSTR (TEST Input ()))
-        (TARGET done) /If Input is (), go to done/
-    )
-    
-    (
-        EDGE
-        (SOURCE loop)
-        (
-            INSTR
-            (ASGN Head (first Input))
-            (ASGN Tail (rest Input))
-            (ASGN Acc (prepend Head Acc))
-            (ASGN Input Tail)
-        )
-        (TARGET loop) /Continue looping/
-    )
-
-    /Final step: store reversed Result/
-    (
-        EDGE
-        (SOURCE done)
-        (INSTR (ASGN Result Acc))
-        (TARGET end)
-    )
-)
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR (ASGN RESULT unknown))
+        (TARGET END)))
 ```
 
-In this example, we are using several variables. `Input` is the list we're consuming. `Acc` is the accumulator we build the reversed list into. In the code, there is a loop going on where in each iteration we do:
+### Example 4: foo-bar
 
-- extract the `Head`
-- push it to the front of `Acc`
-- update `Input` to its `Tail`
-- loop ends when `Input` equals `()`
-- in the final step, the value of Acc becomes Result
+The program outputs `alpha` on `foo` input, `beta` on `bar` input, or `unknown` otherwise:
 
-Thus, when we pass `(1 2 3)`, we get `(3 2 1)`.
+```
+(GRAPH
+
+    // Step 1: Load input
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR (ASGN X PARAMS))
+        (TARGET check))
+
+    // Step 2: Check for foo
+    (EDGE
+        (SOURCE check)
+        (INSTR (TEST X foo))
+        (TARGET match-foo))
+
+    // Step 3: Check for bar
+    (EDGE
+        (SOURCE check)
+        (INSTR (TEST X bar))
+        (TARGET match-bar))
+
+    // Step 4: Fallback if no match
+    (EDGE
+        (SOURCE check)
+        (TARGET fallback))
+
+    // Step 5: Match case foo
+    (EDGE (SOURCE match-foo)
+        (INSTR (ASGN RESULT alpha))
+        (TARGET END))
+
+    // Step 6: Match case bar
+    (EDGE
+        (SOURCE match-bar)
+        (INSTR (ASGN RESULT beta))
+        (TARGET END))
+
+    // Step 7: Default case
+    (EDGE
+        (SOURCE fallback)
+        (INSTR (ASGN RESULT unknown))
+        (TARGET END)))
+```
+
+### Example 5: is-element-of
+
+This example returns `true` if the first parameter is contained within second parameter list, `false` otherise:
+
+```
+(GRAPH
+
+    // Load variables
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR
+            (ASGN Element (FIRST PARAMS))
+            (ASGN List (FIRST (REST PARAMS))))
+        (TARGET loop))
+    
+    // Loop condition: if Input is ()
+    (EDGE
+        (SOURCE loop)
+        (INSTR
+            (TEST List ())
+            (ASGN RESULT false))
+        (TARGET END)) // done
+    
+    // Loop condition: if Element is found
+    (EDGE
+        (SOURCE loop)
+        (INSTR
+            (TEST Element (FIRST List))
+            (ASGN RESULT true))
+        (TARGET END)) // done
+    
+    // Fallback: process next element in list
+    (EDGE
+        (SOURCE loop)
+        (INSTR (ASGN List (REST List)))
+        (TARGET loop))) // Continue looping
+```
+
+### Example 6: reverse list
+
+This program reverses a list:
+
+```
+(GRAPH
+
+    // Load Input and initialize accumulator
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR
+            (ASGN Input PARAMS)
+            (ASGN Acc ()))
+        (TARGET loop))
+
+    // Loop condition: if Input is ()
+    (EDGE
+        (SOURCE loop)
+        (INSTR (TEST Input ()))
+        (TARGET done)) // go to done
+    
+    // Fallback: Process one element
+    (EDGE
+        (SOURCE loop)
+        (INSTR
+            (ASGN Head (RUN first Input))
+            (ASGN Tail (RUN rest Input))
+            (ASGN Acc (RUN prepend (Head Acc)))
+            (ASGN Input Tail))
+        (TARGET loop)) // Continue looping
+
+    // Final step: store reversed RESULT
+    (EDGE
+        (SOURCE done)
+        (INSTR (ASGN RESULT Acc))
+        (TARGET END)))
+```
+
+### Example 7: factorial function
+
+On input `5`, output `120`:
+
+```
+(GRAPH
+    (COMPUTE
+        (NAME fact)
+        (GRAPH
+            
+            // Base case: if PARAMS == 0 -> return 1
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (TEST PARAMS 0)
+                    (ASGN RESULT 1))
+                (TARGET END))
+
+            // Recursive case
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (ASGN n PARAMS)
+                    (ASGN n1 (RUN sub (n 1)))
+                    (ASGN rec (RUN fact n1))
+                    (ASGN RESULT (RUN mul (n rec))))
+                (TARGET END))))
+
+    // Top-level call
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR (ASGN RESULT (RUN fact PARAMS)))
+        (TARGET END)))
+```
 
 ## 4. conclusion
 
-Symbolprose introduces a minimal imperative programming framework based on a graph oriented execution model and symbolic expression syntax. Program control flow is expressed through nodes and edges, where instruction sequences are evaluated deterministically to produce a result based on input parameters.
-
-This document covered the essential aspects of Symbolprose, including its syntax rules, execution semantics, and the role of builtin operations. Through several examples, we demonstrated how branching, iteration, and data transformation can be implemented within this structure using a small set of rules.
-
-As a lightweight platform, Symbolprose may be useful in contexts that benefit from structured symbolic computation and deterministic evaluation. Its design is especially suited for serving as an intermediate representation or as part of a controlled execution environment.
-
-    // under construction //
+Symbolprose provides a foundation for computation that is both graph-structured and minimalistic. Its simplicity in syntax makes it a suitable compilation target, while its semantics offer a precise and predictable model of execution. By embracing graph-based control flow, Symbolprose enables flexible yet analyzable program representation, striking a balance between theoretical elegance and practical expressiveness.  
 
