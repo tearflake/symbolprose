@@ -235,8 +235,8 @@ var Sexpr = (
                     err: "Missing list elements",
                     found: "end of list",
                     pos: {
-                        y: positions.get(node[node.length - 1]).line - 1,
-                        x: positions.get(node[node.length - 1]).col - 1 + node[node.length - 1].value.length
+                        y: positions.get(node).line - 1,
+                        x: positions.get(node).col - 1
                     }
                   };
                 }
@@ -245,7 +245,7 @@ var Sexpr = (
           }
           return {
             err: "Syntax error",
-            found: node.value,
+            found: (Array.isArray (node) ? "list" : node.value),
             pos: {y: positions.get(node).line - 1, x: positions.get(node).col - 1}
           };
         }
