@@ -6,5 +6,5 @@
 <instruction> := (TEST <ANY> <ANY>)
                | (ASGN <ATOMIC> <ANY>)
 
-<compute-call> := (RUN <name> <params>)
+<compute-call> := (RUN <ATOMIC> <ANY>)
 
