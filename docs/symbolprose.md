@@ -83,7 +83,7 @@ There are two predefined variables in each graph: `PARAMS` and `RESULT`. When ex
 
 ### relating programs in a structure
 
-Graphs can be nested using `COMPUTE` sections, syntactically recursing the graph structure, providing a structure and isolation method to our programs. `COMPUTE` section defines its name and a graph. Here, graphs behave like sub-programs with their own input, output, and variable environment. Graphs defined within the nested `COMPUTE` sections, are executed using a special `RUN` calling instruction which takes two parameters: a graph name and input to the graph. `RUN` calling instructions may be placed wherever program variables may appear, thus computing their results from the passed parameters. Only parent and their siblings graphs are visible to a specific `RUN` instruction.
+Graphs can be nested using `COMPUTE` sections, syntactically recursing the graph structure, providing a structure and isolation method to our programs. `COMPUTE` section defines its name and a graph. Here, graphs behave like sub-programs with their own input, output, and variable environment. Graphs defined within the nested `COMPUTE` sections, are executed using a special `RUN` calling instruction which takes two parameters: a graph name and input to the graph. `RUN` calling instructions may be placed wherever program variables may appear, thus computing their results from the passed parameters. Only parents and their siblings graphs are visible to a specific `RUN` instruction.
 
 ## 3. examples
 
