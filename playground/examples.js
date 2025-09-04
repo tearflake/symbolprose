@@ -126,9 +126,9 @@ foo
     (EDGE
         (SOURCE loop)
         (INSTR
-            (ASGN Head (RUN first Input))
-            (ASGN Tail (RUN rest Input))
-            (ASGN Acc (RUN prepend (Head Acc)))
+            (ASGN Head (RUN stdlib (first Input)))
+            (ASGN Tail (RUN stdlib (rest Input)))
+            (ASGN Acc (RUN stdlib (prepend Head Acc)))
             (ASGN Input Tail))
         (TARGET loop)) // Continue looping
 
@@ -151,8 +151,8 @@ foo
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN Element (RUN first PARAMS))
-            (ASGN List (RUN first (RUN rest PARAMS))))
+            (ASGN Element (RUN stdlib (first PARAMS)))
+            (ASGN List (RUN stdlib (first (RUN stdlib (rest PARAMS))))))
         (TARGET loop))
     
     // Loop condition: if Input is ()
@@ -167,14 +167,14 @@ foo
     (EDGE
         (SOURCE loop)
         (INSTR
-            (TEST Element (RUN first List))
+            (TEST Element (RUN stdlib (first List)))
             (ASGN RESULT true))
         (TARGET END)) // done
     
     // Fallback: process next element in list
     (EDGE
         (SOURCE loop)
-        (INSTR (ASGN List (RUN rest List)))
+        (INSTR (ASGN List (RUN stdlib (rest List))))
         (TARGET loop))) // Continue looping
 `,
 "is-element-of-input":
@@ -202,9 +202,9 @@ foo
                 (SOURCE BEGIN)
                 (INSTR
                     (ASGN n PARAMS)
-                    (ASGN n1 (RUN sub (n 1)))
+                    (ASGN n1 (RUN stdlib (sub n 1)))
                     (ASGN rec (RUN fact n1))
-                    (ASGN RESULT (RUN mul (n rec))))
+                    (ASGN RESULT (RUN stdlib (mul n rec))))
                 (TARGET END))))
 
     // Top-level call
@@ -216,6 +216,65 @@ foo
 "factorial-input":
 `
 5
+`,
+
+"fib":
+`
+(GRAPH
+    (COMPUTE
+        (NAME fib)
+        (GRAPH
+            
+            // 0 -> (0)
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (TEST PARAMS 0)
+                    (ASGN RESULT (0)))
+                (TARGET END))
+
+            // 1 -> (0 1)
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (TEST PARAMS 1)
+                    (ASGN RESULT (0 1)))
+                (TARGET END))
+
+            // n -> fib(n - 1) + fib(n - 2)
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (ASGN i 1)
+                    (ASGN acc (0 1)))
+                (TARGET loop))
+
+            (EDGE
+                (SOURCE loop)
+                (INSTR
+                    (TEST i PARAMS)
+                    (ASGN RESULT acc))
+                (TARGET END))
+
+            (EDGE
+                (SOURCE loop)
+                (INSTR
+                    (ASGN n1 (RUN stdlib (sub (RUN stdlib (lstlen acc)) 1)))
+                    (ASGN n2 (RUN stdlib (sub n1 1)))
+                    (ASGN f (RUN stdlib (add (RUN stdlib (nth n1 acc)) (RUN stdlib (nth n2 acc)))))
+                    (ASGN acc (RUN stdlib (append acc f)))
+                    (ASGN i (RUN stdlib (add i 1))))
+                (TARGET loop))))
+
+    // Top-level call
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR (ASGN RESULT (RUN fib PARAMS)))
+        (TARGET END)))
+`,
+"fib-input":
+`
+120
 `
 }
 

@@ -2,7 +2,7 @@
 // under construction //
 ```
 
-# symbolprose v0.3.0
+# symbolprose v0.5.0
 
 _**tags:** s-expression, intermediate-representation, imperative-programming_
 

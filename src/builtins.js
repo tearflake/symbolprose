@@ -5,56 +5,56 @@ const BUILTINS = {
   
   // (add elem elem) -> elem
   add(args) {
-    if (args.length !== 2) throw new Error("add expects 2 args");
-    const lft = Number(args[0]);
-    const rgt = Number(args[1]);
+    if (args[2].length !== 3) return args;
+    const lft = Number(args[2][1]);
+    const rgt = Number(args[2][2]);
     return (lft + rgt).toString();
   },
   
   // (add elem elem) -> elem
   sub(args) {
-    if (args.length !== 2) throw new Error("sub expects 2 args");
-    const lft = Number(args[0]);
-    const rgt = Number(args[1]);
+    if (args[2].length !== 3) return args;
+    const lft = Number(args[2][1]);
+    const rgt = Number(args[2][2]);
     return (lft - rgt).toString();
   },
   
   // (add elem elem) -> elem
   mul(args) {
-    if (args.length !== 2) throw new Error("mul expects 2 args");
-    const lft = Number(args[0]);
-    const rgt = Number(args[1]);
+    if (args[2].length !== 3) return args;
+    const lft = Number(args[2][1]);
+    const rgt = Number(args[2][2]);
     return (lft * rgt).toString();
   },
   
   // (add elem elem) -> elem
   div(args) {
-    if (args.length !== 2) throw new Error("div expects 2 args");
-    const lft = Number(args[0]);
-    const rgt = Number(args[1]);
+    if (args[2].length !== 3) return args;
+    const lft = Number(args[2][1]);
+    const rgt = Number(args[2][2]);
     return (lft / rgt).toString();
   },
   
   // (mod elem elem) -> elem
   mod(args) {
-    if (args.length !== 2) throw new Error("mod expects 2 args");
-    const lft = Number(args[0]);
-    const rgt = Number(args[1]);
+    if (args[2].length !== 3) return args;
+    const lft = Number(args[2][1]);
+    const rgt = Number(args[2][2]);
     return (lft % rgt).toString();
   },
   
   // (add elem elem) -> elem
   pow(args) {
-    if (args.length !== 2) throw new Error("pow expects 2 args");
-    const lft = Number(args[0]);
-    const rgt = Number(args[1]);
+    if (args[2].length !== 3) return args;
+    const lft = Number(args[2][1]);
+    const rgt = Number(args[2][2]);
     return (Math.pow(lft, rgt)).toString();
   },
   
   // (add elem elem) -> elem
   log(args) {
-    if (args.length !== 1) throw new Error("log expects 1 arg");
-    const param = Number(args[0]);
+    if (args[2].length !== 2) return args;
+    const param = Number(args[2][1]);
     return (Math.log(param)).toString();
   },
   
@@ -65,39 +65,41 @@ const BUILTINS = {
 
   // (strlen elem) -> elem
   strlen(args) {
-    const elem = args[0];
-    if (typeof elem !== "string") throw new Error("strlen: first arg must be an atom");
+    if (args[2].length !== 2) return args;
+    const elem = args[2][1];
+    if (typeof elem !== "string") return args;
     return elem.length.toString();
   },
 
   // (strcat elem elem) -> elem
   strcat(args) {
-    if (args.length !== 2) throw new Error("strcat expects 2 args");
-    const elem1 = args[0];
-    const elem2 = args[1];
-    if (typeof elem1 !== "string") throw new Error("strcat: first arg must be an atom");
-    if (typeof elem2 !== "string") throw new Error("strcat: first arg must be an atom");
+    if (args[2].length !== 3) return args;
+    const elem1 = args[2][1];
+    const elem2 = args[2][2];
+    if (typeof elem1 !== "string") return args;
+    if (typeof elem2 !== "string") return args;
     return "" + elem1 + elem2;
   },
 
   // (charat elem) -> elem
   charat(args) {
-    const elem1 = args[0];
-    const elem2 = args[1];
-    if (typeof elem1 !== "string") throw new Error("charat: first arg must be an atom");
-    if (typeof elem2 !== "string") throw new Error("charat: first arg must be an atom");
+    if (args[2].length !== 3) return args;
+    const elem1 = args[2][1];
+    const elem2 = args[2][2];
+    if (typeof elem1 !== "string") return args;
+    if (typeof elem2 !== "string") return args;
     return elem1.charAt(elem2);
   },
 
   // (substr elem elem elem) -> elem
   substr(args) {
-    if (args.length !== 3) throw new Error("substr expects 3 args");
-    const elem1 = args[0];
-    const elem2 = args[1];
-    const elem3 = args[1];
-    if (typeof elem1 !== "string") throw new Error("substr: first arg must be an atom");
-    if (typeof elem2 !== "string") throw new Error("substr: second arg must be an atom");
-    if (typeof elem3 !== "string") throw new Error("substr: third arg must be an atom");
+    if (args[2].length !== 4) return args;
+    const elem1 = args[2][1];
+    const elem2 = args[2][2];
+    const elem3 = args[2][3];
+    if (typeof elem1 !== "string") return args;
+    if (typeof elem2 !== "string") return args;
+    if (typeof elem3 !== "string") return args;
     return elem1.substring(elem2, elem3);
   },
 
@@ -107,59 +109,63 @@ const BUILTINS = {
   
   // (nth elem list) -> elem
   nth(args) {
-    if (args.length !== 2) throw new Error("nth expects 2 args");
-    const elem = args[0];
-    const lst = args[1];
-    if (!Array.isArray(lst)) throw new Error("nth: second arg must be a list");
-    return lst[elem];
+    if (args[2].length !== 3) return args;
+    const elem = args[2][1];
+    const lst = args[2][2];
+    if (!Array.isArray(lst)) return args;
+    if (lst[elem]) return lst[elem];
+    return [];
   },
   
   // (prepend elem lst) -> list
   prepend(args) {
-    if (args.length !== 2) throw new Error("prepend expects 2 args");
-    const elem = args[0];
-    const lst = args[1];
-    if (!Array.isArray(lst)) throw new Error("prepend: second arg must be a list");
+    if (args[2].length !== 3) return args;
+    const elem = args[2][1];
+    const lst = args[2][2];
+    if (!Array.isArray(lst)) return args;
     return [elem, ...lst];
   },
   
   // (append elem lst) -> list
   append(args) {
-    if (args.length !== 2) throw new Error("append expects 2 args");
-    const lst = args[0];
-    const elem = args[1];
-    if (!Array.isArray(lst)) throw new Error("append: first arg must be a list");
+    if (args[2].length !== 3) return args;
+    const lst = args[2][1];
+    const elem = args[2][2];
+    if (!Array.isArray(lst)) return args;
     return [...lst, elem];
   },
   
   // (concat lst lst) -> lst
   concat(args) {
-    if (args.length !== 2) throw new Error("concat expects 2 args");
-    const lst1 = args[0];
-    const lst2 = args[1];
-    if (!Array.isArray(lst1)) throw new Error("concat: first arg must be a list");
-    if (!Array.isArray(lst2)) throw new Error("concat: second arg must be a list");
+    if (args[2].length !== 3) return args;
+    const lst1 = args[2][1];
+    const lst2 = args[2][2];
+    if (!Array.isArray(lst1)) return args;
+    if (!Array.isArray(lst2)) return args;
     return [...lst1, ...lst2];
   },
   
   // (first lst) -> any
   first(args) {
-    const lst = args;
-    if (!Array.isArray(lst)) throw new Error("first: arg must be a list");
+    if (args[2].length !== 2) return args;
+    const lst = args[2][1];
+    if (!Array.isArray(lst)) return args;
     return lst[0];
   },
   
   // (rest lst) -> list
   rest(args) {
-    const lst = args;
-    if (!Array.isArray(lst)) throw new Error("rest: arg must be a list");
+    if (args[2].length !== 2) return args;
+    const lst = args[2][1];
+    if (!Array.isArray(lst)) return args;
     return lst.slice(1);
   },
   
   // (first lst) -> any
   lstlen(args) {
-    const lst = args;
-    if (!Array.isArray(lst)) throw new Error("lstlen: arg must be a list");
+    if (args[2].length !== 2) return args;
+    const lst = args[2][1];
+    if (!Array.isArray(lst)) return args;
     return lst.length.toString();
   }
 };

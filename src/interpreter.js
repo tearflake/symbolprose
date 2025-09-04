@@ -133,10 +133,7 @@ var Interpreter = (
             expr = expr.map(e => evalExpr (e, graph, env));
             
             if (Array.isArray (expr)) {
-                if (expr[0] === "RUN") {
-                    if (expr.length !== 3) throw new Error("RUN expects 2 args");
-                    if (typeof expr[1] !== "string") throw new Error("RUN: first parameter must be atomic value");
-
+                if (expr[0] === "RUN" && expr.length === 3) {
                     let parent = graph;
                     while (parent) {
                         let child = parent.children[expr[1]];
@@ -145,11 +142,9 @@ var Interpreter = (
                         }
                         parent = parent.parent;
                     }
-
-                    if (!BUILTINS[expr[1]]) {
-                        throw new Error (`RUN: unknown compute item '${expr[1]}'`); 
-                    }
-                    return BUILTINS[expr[1]](expr[2]);
+                    
+                    if (expr[1] === "stdlib" && BUILTINS[expr[2][0]])
+                        return BUILTINS[expr[2][0]](expr);
                 }
             }
           
@@ -199,7 +194,7 @@ var Interpreter = (
                             }
                         }
                         
-                        node = evalExpr (edge.target, graph, env);
+                        node = edge.target;
                         continue loop1;
                     }
                     

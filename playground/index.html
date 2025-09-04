@@ -147,15 +147,33 @@
     <div id="drpdwncntnt" class="dropdown-content" style="margin-top: 8px;">
         <b><nobr>
         
-<div class="droplbl">1. tutorial examples</div>
+<div class="droplbl">tutorial examples</div>
 
-        <a href="javascript:populate('echo');           ">&nbsp;&nbsp;&nbsp;&nbsp; - echo</a>
-        <a href="javascript:populate('ping-pong');      ">&nbsp;&nbsp;&nbsp;&nbsp; - ping-pong</a>
-        <a href="javascript:populate('hi-bye');         ">&nbsp;&nbsp;&nbsp;&nbsp; - hi-bye</a>
-        <a href="javascript:populate('foo-bar');        ">&nbsp;&nbsp;&nbsp;&nbsp; - foo-bar</a>
-        <a href="javascript:populate('is-element-of');  ">&nbsp;&nbsp;&nbsp;&nbsp; - is-element-of</a>
-        <a href="javascript:populate('reverse');        ">&nbsp;&nbsp;&nbsp;&nbsp; - reverse-list</a>
-        <a href="javascript:populate('factorial');      ">&nbsp;&nbsp;&nbsp;&nbsp; - factorial</a>
+<div class="droplbl">&nbsp;&nbsp;&nbsp;&nbsp; 1. variables</div>
+
+        <a href="javascript:populate('echo');           ">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - echo</a>
+        <a href="javascript:populate('ping-pong');      ">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - ping-pong</a>
+
+<br/>
+
+<div class="droplbl">&nbsp;&nbsp;&nbsp;&nbsp; 2. control flow</div>
+
+        <a href="javascript:populate('hi-bye');         ">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - hi-bye</a>
+        <a href="javascript:populate('foo-bar');        ">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - foo-bar</a>
+
+<br/>
+
+<div class="droplbl">&nbsp;&nbsp;&nbsp;&nbsp; 3. loops</div>
+
+        <a href="javascript:populate('is-element-of');  ">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - is-element-of</a>
+        <a href="javascript:populate('reverse');        ">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - reverse-list</a>
+
+<br/>
+
+<div class="droplbl">&nbsp;&nbsp;&nbsp;&nbsp; 4. functions</div>
+
+        <a href="javascript:populate('factorial');      ">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - factorial</a>
+        <a href="javascript:populate('fib');            ">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - fibonacci numbers</a>
 
 <br/>
 
@@ -394,7 +412,7 @@
                 document.getElementById("tm").innerHTML = "";
             } else {
                 var tcompiled = (Date.now () - tm);
-                document.getElementById("tm").innerHTML = "(rules parsed in " + tcompiled + "ms) (interpreting program...)";
+                document.getElementById("tm").innerHTML = "(graph parsed in " + tcompiled + "ms) (interpreting program...)";
                 var tm = Date.now ();
                 setTimeout (function (){
                     var output = Interpreter.run (program, input1.getValue ());
@@ -403,7 +421,7 @@
                         document.getElementById("tm").innerHTML = "";
                     } else {
                         var trewritten = (Date.now () - tm)
-                        document.getElementById("tm").innerHTML = "(rules parsed in " + tcompiled + "ms)" + " (program interpreted in " + trewritten + "ms)";
+                        document.getElementById("tm").innerHTML = "(graph parsed in " + tcompiled + "ms)" + " (program interpreted in " + trewritten + "ms)";
                         output1.value = Interpreter.stringify (output);
                     }
                 }, 0);

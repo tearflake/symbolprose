@@ -37,8 +37,10 @@ Symbolprose is intended to represent a fast-executing virtual machine and a comp
 In computer science, the syntax of a computer language is the set of rules that defines the combinations of symbols that are considered to be correctly structured statements or expressions in that language. Symbolprose language itself resembles a kind of S-expression. S-expressions consist of lists of atoms or other S-expressions where lists are surrounded by parenthesis. In Symbolprose, the first list element to the left determines a type of a list. There are a few predefined list types used for data transformation depicted by the following relaxed kind of Backus-Naur form syntax rules:
 
 ```
-<start> := (GRAPH <element>+)
+<start> := <graph>
          | (FILE <ATOMIC>)
+
+<graph> := (GRAPH <element>+)
 
 <element> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
            | (COMPUTE (NAME <ATOMIC>) <start>)
@@ -73,7 +75,7 @@ Edges are places where actual execution of instructions are done. Each edge `EDG
 
 `TEST` instructions also take two parameters: expressions which are about to be compared for being equal. Also using the variable substitution, if the parameters are equal to the last consisting atom, the execution flow continues to the next instruction in the sequence. If the parameters are not equal, the branching happens, and the next edge from the same source node is selected for execution. There is no backtracking which cancels the `ASGN` effects from the past instruction sequences. Instead, the control flow is just switched to the beginning of the next edge sequence. When all the edges from the same source node fail to execute, a runtime error is triggered.
 
-Finally, when all the instructions from the current `INSTR` sequence succeed, the program control flow continues to the `TARGET` node, trying to execute further edges that branch from the current node. We can consider each instruction sequence labeled by the `SOURCE` section name, while the `TARGET` section name serves as a kind of "goto" command mechanism. Also, a variable can be used in `TARGET` sections, making a case for "computed goto" behavior. Naturally, it is possible to form loops targeting the past nodes, but we have to carefully set up `TEST` conditions to break out of them if we don't want an infinite loop to appear.
+Finally, when all the instructions from the current `INSTR` sequence succeed, the program control flow continues to the `TARGET` node, trying to execute further edges that branch from the current node. We can consider each instruction sequence labeled by the `SOURCE` section name, while the `TARGET` section name serves as a kind of "goto" command mechanism. Naturally, it is possible to form loops targeting the past nodes, but we have to carefully set up `TEST` conditions to exit if we don't want an infinite loop to appear.
 
 ### internal variables
 
@@ -200,8 +202,8 @@ This example returns `true` if the first parameter is contained within second pa
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN Element (FIRST PARAMS))
-            (ASGN List (FIRST (REST PARAMS))))
+            (ASGN Element (RUN stdlib (first PARAMS)))
+            (ASGN List (RUN stdlib (first (RUN stdlib (rest PARAMS))))))
         (TARGET loop))
     
     // Loop condition: if Input is ()
@@ -216,14 +218,14 @@ This example returns `true` if the first parameter is contained within second pa
     (EDGE
         (SOURCE loop)
         (INSTR
-            (TEST Element (FIRST List))
+            (TEST Element (RUN stdlib (first List)))
             (ASGN RESULT true))
         (TARGET END)) // done
     
     // Fallback: process next element in list
     (EDGE
         (SOURCE loop)
-        (INSTR (ASGN List (REST List)))
+        (INSTR (ASGN List (RUN stdlib (rest List))))
         (TARGET loop))) // Continue looping
 ```
 
@@ -252,9 +254,9 @@ This program reverses a list:
     (EDGE
         (SOURCE loop)
         (INSTR
-            (ASGN Head (RUN first Input))
-            (ASGN Tail (RUN rest Input))
-            (ASGN Acc (RUN prepend (Head Acc)))
+            (ASGN Head (RUN stdlib (first Input)))
+            (ASGN Tail (RUN stdlib (rest Input)))
+            (ASGN Acc (RUN stdlib (prepend Head Acc)))
             (ASGN Input Tail))
         (TARGET loop)) // Continue looping
 
@@ -267,7 +269,7 @@ This program reverses a list:
 
 ### Example 7: factorial function
 
-On input `5`, output `120`:
+Recursive factorial function - on input `5`, output is `120`:
 
 ```
 (GRAPH
@@ -288,15 +290,73 @@ On input `5`, output `120`:
                 (SOURCE BEGIN)
                 (INSTR
                     (ASGN n PARAMS)
-                    (ASGN n1 (RUN sub (n 1)))
+                    (ASGN n1 (RUN stdlib (sub n 1)))
                     (ASGN rec (RUN fact n1))
-                    (ASGN RESULT (RUN mul (n rec))))
+                    (ASGN RESULT (RUN stdlib (mul n rec))))
                 (TARGET END))))
 
     // Top-level call
     (EDGE
         (SOURCE BEGIN)
         (INSTR (ASGN RESULT (RUN fact PARAMS)))
+        (TARGET END)))
+```
+
+### Example 8: Fibonacci numbers
+
+Returns a list up to n fibonacci numbers:
+
+```
+(GRAPH
+    (COMPUTE
+        (NAME fib)
+        (GRAPH
+            
+            // 0 -> (0)
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (TEST PARAMS 0)
+                    (ASGN RESULT (0)))
+                (TARGET END))
+
+            // 1 -> (0 1)
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (TEST PARAMS 1)
+                    (ASGN RESULT (0 1)))
+                (TARGET END))
+
+            // n -> fib(n - 1) + fib(n - 2)
+            (EDGE
+                (SOURCE BEGIN)
+                (INSTR
+                    (ASGN i 1)
+                    (ASGN acc (0 1)))
+                (TARGET loop))
+
+            (EDGE
+                (SOURCE loop)
+                (INSTR
+                    (TEST i PARAMS)
+                    (ASGN RESULT acc))
+                (TARGET END))
+
+            (EDGE
+                (SOURCE loop)
+                (INSTR
+                    (ASGN n1 (RUN stdlib (sub (RUN stdlib (lstlen acc)) 1)))
+                    (ASGN n2 (RUN stdlib (sub n1 1)))
+                    (ASGN f (RUN stdlib (add (RUN stdlib (nth n1 acc)) (RUN stdlib (nth n2 acc)))))
+                    (ASGN acc (RUN stdlib (append acc f)))
+                    (ASGN i (RUN stdlib (add i 1))))
+                (TARGET loop))))
+
+    // Top-level call
+    (EDGE
+        (SOURCE BEGIN)
+        (INSTR (ASGN RESULT (RUN fib PARAMS)))
         (TARGET END)))
 ```
 

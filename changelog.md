@@ -18,3 +18,6 @@
     - including sub-graphs
     - basic set of primitive functions
 
+- v0.5.x
+    - primitive functions are now in stdlib package
+
