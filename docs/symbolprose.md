@@ -38,7 +38,6 @@ In computer science, the syntax of a computer language is the set of rules that 
 
 ```
 <start> := <graph>
-         | (FILE <ATOMIC>)
 
 <graph> := (GRAPH <element>+)
 
