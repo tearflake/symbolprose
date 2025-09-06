@@ -83,6 +83,7 @@ function evalExpr(value: SExpr, graph: Graph, env: Env)
 
         if value[1] == "stdlib" and value[2][0] in internalFunc
             return internalFunc[value[2][0]](value, env)
+            
     return value
 
 // Expression matching

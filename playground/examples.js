@@ -225,7 +225,7 @@ foo
         (NAME fib)
         (GRAPH
             
-            // 0 -> (0)
+            // fib(0) -> (0)
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
@@ -233,7 +233,7 @@ foo
                     (ASGN RESULT (0)))
                 (TARGET END))
 
-            // 1 -> (0 1)
+            // fib(1) -> (0 1)
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
@@ -241,7 +241,7 @@ foo
                     (ASGN RESULT (0 1)))
                 (TARGET END))
 
-            // n -> fib(n - 1) + fib(n - 2)
+            // fib(n) -> fib(n - 1) + fib(n - 2)
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR

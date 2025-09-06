@@ -1,7 +1,9 @@
-<start> := (GRAPH <element>+)
+<start> := <graph>
+
+<graph> := (GRAPH <element>+)
 
 <element> := (EDGE (SOURCE <ATOMIC>) (INSTR <instruction>+)? (TARGET <ATOMIC>))
-           | (COMPUTE (NAME <ATOMIC>) <start>)
+           | (COMPUTE (NAME <ATOMIC>) <graph>)
 
 <instruction> := (TEST <ANY> <ANY>)
                | (ASGN <ATOMIC> <ANY>)

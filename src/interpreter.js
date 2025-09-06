@@ -138,7 +138,10 @@ var Interpreter = (
                     while (parent) {
                         let child = parent.children[expr[1]];
                         if (child) {
-                            return runLowLevel (child, expr[2]);
+                            var ran = runLowLevel (child, expr[2]);
+                            if (ran) {
+                                return runLowLevel (child, expr[2]);
+                            }
                         }
                         parent = parent.parent;
                     }
@@ -163,7 +166,7 @@ var Interpreter = (
             env["RESULT"] = "NIL";
             
             let node = "BEGIN"; 
-            let guard = 0, GUARD_LIMIT = 10000;
+            let guard = 0, GUARD_LIMIT = 100000;
             try {
                 loop1: while (node !== "END") {
                     if (guard++ > GUARD_LIMIT) {
