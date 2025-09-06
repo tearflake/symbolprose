@@ -1,4 +1,4 @@
-# Symbolprose
+# symbolprose
 
 > **[about document]**  
 > Introduction to *Symbolprose* symbol processing framework
@@ -362,5 +362,5 @@ Returns a list up to n fibonacci numbers:
 
 ## 4. conclusion
 
-Symbolprose provides a foundation for computation that is both graph-structured and minimalistic. Its simplicity in syntax makes it a suitable compilation target, while its semantics offer a precise and predictable model of execution. By embracing graph-based control flow, Symbolprose enables flexible yet analyzable program representation, striking a balance between theoretical elegance and practical expressiveness.  
+Symbolprose provides a foundation for computation that is both graph-structured and minimalistic. Its simplicity in syntax makes it a suitable compilation target, while its semantics offer a precise and predictable model of execution. By embracing graph-based control flow, Symbolprose enables flexible yet analyzable program representation, striving to a balance between theoretical elegance and practical expressiveness.  
 
