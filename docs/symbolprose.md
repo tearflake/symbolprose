@@ -50,9 +50,7 @@ In computer science, the syntax of a computer language is the set of rules that 
 <compute-call> := (RUN <name> <params>)
 ```
 
-The above grammar defines the syntax of Symbolprose. To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the *Symbolprose* language.
-
-To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the Symbolprose language.
+The above grammar defines the syntax of Symbolprose. To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the Symbolprose language.
 
 Atoms may be enclosed within `'` characters  if we want to include special characters used in the grammar. Strings are enclosed between `"` characters. Multiline atoms and strings are enclosed between an odd number of `'` or `"` characters. 
  
