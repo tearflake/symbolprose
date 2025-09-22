@@ -65,26 +65,31 @@ function run (graph: Graph, params: SExpr)
 
 function evalExpr(value: SExpr, graph: Graph, env: Env)
     if value is Atom
-        if value in env
-            return env[value]
+        if value is string
+            return unquoted value
         else
-            return value
+            if value !== "RUN"
+                if value in env
+                    return env[value]
+                else
+                    return "NIL"
+            
+            else
+                return value
 
-    value = [evalExpr(v, graph, env) for v in value]
-    
     if value[0] == "RUN"
+        if value[1] == "stdlib" and value[2][0] in internalFunc
+            return internalFunc[value[2][0]](evalExpr(value[2], graph, env), env)
+            
         parent = graph;
         while parent
             child = parent.children[value[1]];
             if (child)
-                return run (child, value[2]);
+                return run (child, evalExpr(value[2], graph, env));
 
             parent = parent.parent;
 
-        if value[1] == "stdlib" and value[2][0] in internalFunc
-            return internalFunc[value[2][0]](value, env)
-            
-    return value
+    return [evalExpr(v, graph, env) for v in value]
 
 // Expression matching
 
