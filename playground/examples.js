@@ -5,8 +5,8 @@ examples = {
    (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN x PARAMS)
-            (ASGN RESULT x))
+            (ASGN X PARAMS)
+            (ASGN RESULT X))
         (TARGET END)))
 `,
 "echo-input":
@@ -151,8 +151,8 @@ foo
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN Element (RUN stdlib ("first" PARAMS)))
-            (ASGN List (RUN stdlib ("first" (RUN stdlib ("rest" PARAMS))))))
+            (ASGN Element (RUN stdlib ("nth" "0" PARAMS)))
+            (ASGN List    (RUN stdlib ("nth" "1" PARAMS))))
         (TARGET loop))
     
     // Loop condition: if Input is ()
