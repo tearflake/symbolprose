@@ -1,5 +1,5 @@
 // symbolprose.js
-// (c) tearflake, 2024
+// (c) tearflake, 2025
 // MIT License
 
 "use strict";

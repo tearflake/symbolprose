@@ -5,7 +5,7 @@
 var Parser = (
     function (obj) {
         return {
-            makeRules: obj.makeRules,
+            parseRules: obj.parseRules,
             parse: obj.parse
         };
     }
@@ -17,144 +17,206 @@ var Parser = (
             let rules = [];
             for (let i = 1; i < sexpr.length; i++) {
                 let ruleName = sexpr[i][1];
-                if (!rules[ruleName]) {
-                    rules[ruleName] = [];
-                }
-                
                 let ruleBody = sexpr[i][2];
-                rules[ruleName].push (ruleBody);
+                rules[ruleName] = ruleBody;
             }
             
             return rules
         }
         
-        var path, farthestPath;
-        var topPattern;
-        let parse = function (expr, syntax) {
-            //let rules = makeRules (syntax);
-            //let res = matchRule ("<start>", [expr], 0, rules);
+        let path, farthestPath;
+
+        let parseRules = function (rules) {
+            let syntax = `
+            (GRAMMAR
+                (RULE
+                    <start>
+                    (GROUP (MUL "GRAMMAR" <rule> (STAR <rule>))))
+
+                (RULE
+                    <rule>
+                    (GROUP (MUL "RULE" ATOMIC <expr>)))
+
+                (RULE
+                    <expr>
+                    (ADD
+                        (GROUP (MUL "GROUP" <expr>))
+                        (GROUP (MUL "ADD" (STAR <expr>)))
+                        (GROUP (MUL "MUL" (STAR <expr>)))
+                        (GROUP (MUL "STAR" <expr>))
+                        (GROUP (MUL "ATOM" <expr>))
+                        ATOMIC)))
+            `
+
+            let sSyntax = SExpr.parse (syntax);
+            let sRules = SExpr.parse (rules);
+            
+            if (sRules.err) {
+                return sRules;
+            }
+
             path = [];
-            farthestPath = path;
-            topPattern = syntax;
-            let res = dispatch (syntax, [expr], 0, rules);
-            if (res.err) {
-                return {err: res.err, path: farthestPath};
+            farthestPath = [];
+            let ast = parse (sSyntax, rules);
+            
+            if (ast.err) {
+                let msg = SExpr.getPosition (rules, farthestPath);
+                return {err: msg.err, found: msg.found, pos: msg.pos};
             }
             else {
-                return res[0];
+                return ast;
             }
+
         }
         
-        let dispatch = function (pattern, expr, idx, rules) {
-            if (Array.isArray (pattern)) {
-                if (pattern[0] === "GROUP") {
-                    return ret (matchGroup (pattern, expr, idx, rules));
+        let err;
+        function parse (syntax, sexpr) {
+            let sSexpr = SExpr.parse (sexpr);
+            if (sSexpr.err) return sSexpr;
+
+            path = [];
+            farthestPath = [];
+            err = undefined;
+            let ast = dispatch ("<start>", [sSexpr], 0, makeRules (syntax), false, 0);
+            if (ast.err) {
+                if (err) {
+                    return {err: err};
                 }
-                else if (pattern[0] === "MUL") {
-                    return ret (matchMul (pattern, expr, idx, rules));
-                }
-                else if (pattern[0] === "ADD") {
-                    return ret (matchAdd (pattern, expr, idx, rules));
-                }
-                else if (pattern[0] === "STAR") {
-                    return ret (matchStar (pattern, expr, idx, rules));
-                }
-                else if (pattern[0] === "SEQUENCE") {
-                    return ret (matchSeq (pattern, expr, idx, rules));
-                }
-                else if (pattern[0] === "CHOICE") {
-                    return ret (matchCho (pattern, expr, idx, rules));
-                }
-                else if (pattern[0] === "OPTIONAL") {
-                    return ret (matchOpt (pattern, expr, idx, rules));
-                }
-                else if (pattern[0] === "ZEROORMORE") {
-                    return ret (matchZOM (pattern, expr, idx, rules));
-                }
-                else if (pattern[0] === "ONEORMORE") {
-                    return ret (matchOOM (pattern, expr, idx, rules));
+                else {
+                    let msg = SExpr.getPosition (sexpr, farthestPath);
+                    return {err: msg.err, found: msg.found, pos: msg.pos, path: farthestPath};
                 }
             }
-            else if (!Array.isArray (pattern)) {
-                if (pattern === "ZERO") {
-                    return ret ({err: true});
+            else {
+                if (typeof ast === "string") {
+                    return ast;
                 }
-                else if (pattern === "ONE") {
-                    return ret ([]);
+                else {
+                    return ast[0];
                 }
-                else if (pattern === '"' + expr[idx] + '"') {
-                    return ret (expr[idx]);
-                }
-                else if (pattern === "ATOMIC") {
-                    if (typeof expr[idx] === "string") {
-                        return ret (expr[idx]);
+            }
+        }
+
+        let dispatch = function (pattern, expr, idx, rules, atomic, rec) {
+            if (rec > 1000) {
+                err = "Too much recursion";
+                return {err: true};
+            }
+
+            if (expr === undefined) {
+                return ret ({err: true});
+            }
+            else if (Array.isArray (expr)) {
+                if (Array.isArray (pattern)) {
+                    if (pattern[0] === "GROUP") {
+                        return ret (matchGroup (pattern, expr, idx, rules, atomic, rec + 1), atomic);
                     }
-                    else {
-                        return ret ({err: true});
+                    if (pattern[0] === "ATOM") {
+                        return ret (matchAtom (pattern, expr, idx, rules, true, rec + 1), true);
+                    }
+                    else if (pattern[0] === "MUL") {
+                        return ret (matchMul (pattern, expr, idx, rules, atomic, rec + 1), atomic);
+                    }
+                    else if (pattern[0] === "ADD") {
+                        return ret (matchAdd (pattern, expr, idx, rules, atomic, rec + 1), atomic);
+                    }
+                    else if (pattern[0] === "STAR") {
+                        return ret (matchStar (pattern, expr, idx, rules, atomic, rec + 1), atomic);
                     }
                 }
-                else if (pattern === "ANY") {
-                    if (Array.isArray (expr[idx])) {
-                        return ret ([expr[idx]]);
+                else if (!Array.isArray (pattern)) {
+                    if (pattern === "ZERO") {
+                        return ret ({err: true}, atomic);
                     }
-                    return ret (expr[idx]);
+                    else if (pattern === "ONE") {
+                        return ret ([], atomic);
+                    }
+                    else if (pattern === '"' + expr[idx] + '"') {
+                        return ret (expr[idx], atomic);
+                    }
+                    else if (pattern === "ATOMIC") {
+                        if (typeof expr[idx] === "string") {
+                            return ret (expr[idx], atomic);
+                        }
+                        else {
+                            return ret ({err: true}, atomic);
+                        }
+                    }
+                    else if (pattern === "ANY") {
+                        if (Array.isArray (expr[idx])) {
+                            return ret ([expr[idx]], atomic);
+                        }
+                        else {
+                            return ret (expr[idx], atomic);
+                        }
+                    }
+                    else if (rules[pattern]){
+                        return ret (matchRule (pattern, expr, idx, rules, atomic, rec + 1), atomic);
+                    }
                 }
-                else if (pattern === "RECURSE") {
-                        return ret (dispatch (topPattern, expr, idx, rules));
-                }
-                /*
-                else if (pattern.charAt(0) === "<" && pattern.charAt(pattern.length - 1) === ">") {
-                    return ret (matchRule (pattern, expr[idx], 0, rules));
-                }
-                */
             }
             
             return ret ({err: true});
         }
         
-        let ret = function (val) {
-            if (compareArr(path, farthestPath) > 0) {
+        let ret = function (val, atomic) {
+            if (!atomic && compareArr(path, farthestPath) > 0) {
                 farthestPath = [...path];
             }
             return val;
         }
         
-        let matchRule = function (pattern, expr, idx, rules) {
-            let ruleSet = rules[pattern];
-            for (let i = 0; i < ruleSet.length; i++) {
-                let res = dispatch (ruleSet[i], [expr[idx]], 0, rules);
-                if (!res.err) {
-                    return res;
+        let matchRule = function (pattern, expr, idx, rules, atomic, rec) {
+            let rbody = rules[pattern];
+            let res = dispatch (rbody, expr, idx, rules, atomic, rec);
+            if (!res.err) {
+                return res;
+            }
+            
+            return {err: true};
+        }
+
+        let matchGroup = function (pattern, expr, idx, rules, atomic, rec) {
+            if (Array.isArray (expr[idx])) {
+                path = [...path, 0]
+                let res = dispatch (pattern[1], expr[idx], 0, rules, atomic, rec)
+                path.pop ();
+                if (!res.err && (typeof res === typeof expr[idx] && res.length === expr[idx].length)) {
+                    return [res];
                 }
             }
             
             return {err: true};
         }
 
-        let matchGroup = function (pattern, expr, idx, rules) {
-            path = [...path, 0]
-            let res = dispatch (pattern[1], expr[idx], 0, rules)
-            path.pop ();
-            if (res.err || res.length !== expr[idx].length) {
-                return {err: true};
+        let matchAtom = function (pattern, expr, idx, rules, atomic, rec) {
+            if (typeof expr[idx] === "string") {
+                let chars = expr[idx].split ("");
+                path = [...path, 0]
+                let res = dispatch (pattern[1], chars, 0, rules, atomic, rec);
+                path.pop ();
+                if (!res.err && Array.isArray (res) && res.length === chars.length) {
+                    for (let i = 0; i < res.length; i++) {
+                        if (res[i] !== chars[i]) {
+                            return {err: true};
+                        }
+                    }
+                    
+                    return [expr[idx]];
+                }
             }
-            
-            return [res];
+
+            return {err: true};
         }
 
-        let matchMul = function (pattern, expr, idx, rules) {
+        let matchMul = function (pattern, expr, idx, rules, atomic, rec) {
             let res = [];
             let d = 0;
             
             for (let i = 1; i < pattern.length; i++) {
-                if (expr.length <= i - 1 + d) {
-                    path[path.length - 1]++;
-                    return {err:true};
-                }
-                
                 path[path.length - 1] = idx + i - 1 + d;
                 
-                let el = dispatch (pattern[i], expr, idx + i - 1 + d, rules);
+                let el = dispatch (pattern[i], expr, idx + i - 1 + d, rules, atomic, rec);
                 if (el.err) {
                     return {err:true};
                 }
@@ -162,8 +224,17 @@ var Parser = (
                     res.push (el);
                 }
                 else {
-                    res = [...res, ...el];
-                    d += el.length - 1;
+                    if (Array.isArray (el)) {
+                        res = [...res, ...el];
+                        d += el.length - 1;
+                    }
+                    else {
+                        res = [...res, el];
+                    }
+                }
+                
+                if (expr.length <= i - 1 + d) {
+                    return {err:true};
                 }
             }
             
@@ -172,9 +243,9 @@ var Parser = (
             return res;
         }
         
-        let matchAdd = function (pattern, expr, idx, rules) {
+        let matchAdd = function (pattern, expr, idx, rules, atomic, rec) {
             for (let i = 1; i < pattern.length; i++) {
-                let res = dispatch (pattern[i], expr, idx, rules);
+                let res = dispatch (pattern[i], expr, idx, rules, atomic, rec);
                 if (!res.err) {
                     return res;
                 }
@@ -183,13 +254,19 @@ var Parser = (
             return {err:true}
         }
         
-        let matchStar = function (pattern, expr, idx, rules) {
+        let matchStar = function (pattern, expr, idx, rules, atomic, rec) {
             let res = []
             for (let i = idx; i < expr.length; i++) {
-                let el = dispatch (pattern[1], expr, i, rules)
+                let el = dispatch (pattern[1], expr, i, rules, atomic, rec)
                 if (!el.err) {
-                    res = [...res, ...el];
-                    path[path.length - 1] += el.length;
+                    if (Array.isArray (el)) {
+                        res = [...res, ...el];
+                        path[path.length - 1] += el.length;
+                    }
+                    else {
+                        res = [...res, el];
+                        path[path.length - 1]++;
+                    }
                 }
                 else {
                     return res;
@@ -199,26 +276,6 @@ var Parser = (
             return res;
         }
 
-        let matchSeq = function (pattern, expr, idx, rules) {
-            return dispatch (["GROUP", ["MUL", ...pattern.slice(1)]], expr, idx, rules);
-        }
-
-        let matchCho = function (pattern, expr, idx, rules) {
-            return dispatch (["ADD", ...pattern.slice(1)], expr, idx, rules);
-        }
-
-        let matchOpt = function (pattern, expr, idx, rules) {
-            return dispatch (["ADD", pattern[1], "ONE"], expr, idx, rules);
-        }
-
-        let matchZOM = function (pattern, expr, idx, rules) {
-            return dispatch (["STAR", pattern[1]], expr, idx, rules);
-        }
-
-        let matchOOM = function (pattern, expr, idx, rules) {
-            return dispatch (["MUL", pattern[1], ["STAR", pattern[1]]], expr, idx, rules);
-        }
-        
         var compareArr = function (arr1, arr2) {
             for (var i = 0; i < arr1.length; i++) {
                 if (i < arr2.length) {
@@ -247,7 +304,7 @@ var Parser = (
 
         return {
             parse: parse,
-            makeRules: makeRules
+            parseRules: parseRules
         }
     }) ()
 );

@@ -20,4 +20,5 @@
 
 - v0.5.x
     - primitive functions are now in stdlib package
+    - constants must be strings
 

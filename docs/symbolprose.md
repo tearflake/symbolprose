@@ -50,9 +50,9 @@ In computer science, the syntax of a computer language is the set of rules that 
 <compute-call> := (RUN <name> <params>)
 ```
 
-The above grammar defines the syntax of Symbolprose. To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the Symbolprose language.
+The above grammar defines the syntax of Symbolprose. To interpret these grammar rules, we use special symbols: `<...>` for noting identifiers, `... := ...` for expressing assignment, `...+` for one or more occurrences, `...*` for zero or more occurrences, `...?` for optional appearance, and `... | ...` for alternation between expressions. All other symbols are considered as parts of the Symbolprose grammar.
 
-Atoms may be enclosed within `'` characters  if we want to include special characters used in the grammar. Strings are enclosed between `"` characters. Multiline atoms and strings are enclosed between an odd number of `'` or `"` characters. 
+Atoms may be enclosed between a pair of `'` characters  if we want to include special characters used in the grammar. Strings are enclosed between `"` characters. Multiline atoms and strings are enclosed between an odd number of `'` or `"` characters. 
  
 In addition to the exposed grammar, user comments have no meaning to the system, but may be descriptive to readers, and may be placed wherever a whitespace is expected. Single line comments begin with `//` and span to the end of line. Multiline comments begin with `/*` and end with `*/`.
 
@@ -95,8 +95,8 @@ This program simply echoes its input:
    (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN X PARAMS)
-            (ASGN RESULT X))
+            (ASGN x PARAMS)
+            (ASGN RESULT x))
         (TARGET END)))
 ```
 
@@ -109,10 +109,12 @@ The program outputs `pong` when the input is `ping`, otherwise it raises an erro
    (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (TEST PARAMS ping)
-            (ASGN RESULT pong))
+            (TEST PARAMS "ping")
+            (ASGN RESULT "pong"))
         (TARGET END)))
 ```
+
+Note that constants are represented as strings.
 
 ### Example 3: hi-bye
 
@@ -123,20 +125,20 @@ Program answers `greeting` on input `hi`, `farewell` on input `bye`, or `unknown
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (TEST PARAMS hi)
-            (ASGN RESULT greeting))
+            (TEST PARAMS "hi")
+            (ASGN RESULT "greeting"))
         (TARGET END))
 
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (TEST PARAMS bye)
-            (ASGN RESULT farewell))
+            (TEST PARAMS "bye")
+            (ASGN RESULT "farewell"))
         (TARGET END))
 
     (EDGE
         (SOURCE BEGIN)
-        (INSTR (ASGN RESULT unknown))
+        (INSTR (ASGN RESULT "unknown"))
         (TARGET END)))
 ```
 
@@ -156,13 +158,13 @@ The program outputs `alpha` on `foo` input, `beta` on `bar` input, or `unknown` 
     // Step 2: Check for foo
     (EDGE
         (SOURCE check)
-        (INSTR (TEST X foo))
+        (INSTR (TEST X "foo"))
         (TARGET match-foo))
 
     // Step 3: Check for bar
     (EDGE
         (SOURCE check)
-        (INSTR (TEST X bar))
+        (INSTR (TEST X "bar"))
         (TARGET match-bar))
 
     // Step 4: Fallback if no match
@@ -172,19 +174,19 @@ The program outputs `alpha` on `foo` input, `beta` on `bar` input, or `unknown` 
 
     // Step 5: Match case foo
     (EDGE (SOURCE match-foo)
-        (INSTR (ASGN RESULT alpha))
+        (INSTR (ASGN RESULT "alpha"))
         (TARGET END))
 
     // Step 6: Match case bar
     (EDGE
         (SOURCE match-bar)
-        (INSTR (ASGN RESULT beta))
+        (INSTR (ASGN RESULT "beta"))
         (TARGET END))
 
     // Step 7: Default case
     (EDGE
         (SOURCE fallback)
-        (INSTR (ASGN RESULT unknown))
+        (INSTR (ASGN RESULT "unknown"))
         (TARGET END)))
 ```
 
@@ -199,8 +201,8 @@ This example returns `true` if the first parameter is contained within second pa
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN Element (RUN stdlib (first PARAMS)))
-            (ASGN List (RUN stdlib (first (RUN stdlib (rest PARAMS))))))
+            (ASGN Element (RUN stdlib ("first" PARAMS)))
+            (ASGN List (RUN stdlib ("first" (RUN stdlib ("rest" PARAMS))))))
         (TARGET loop))
     
     // Loop condition: if Input is ()
@@ -208,21 +210,21 @@ This example returns `true` if the first parameter is contained within second pa
         (SOURCE loop)
         (INSTR
             (TEST List ())
-            (ASGN RESULT false))
+            (ASGN RESULT "false"))
         (TARGET END)) // done
     
     // Loop condition: if Element is found
     (EDGE
         (SOURCE loop)
         (INSTR
-            (TEST Element (RUN stdlib (first List)))
-            (ASGN RESULT true))
+            (TEST Element (RUN stdlib ("first" List)))
+            (ASGN RESULT "true"))
         (TARGET END)) // done
     
     // Fallback: process next element in list
     (EDGE
         (SOURCE loop)
-        (INSTR (ASGN List (RUN stdlib (rest List))))
+        (INSTR (ASGN List (RUN stdlib ("rest" List))))
         (TARGET loop))) // Continue looping
 ```
 
@@ -251,9 +253,9 @@ This program reverses a list:
     (EDGE
         (SOURCE loop)
         (INSTR
-            (ASGN Head (RUN stdlib (first Input)))
-            (ASGN Tail (RUN stdlib (rest Input)))
-            (ASGN Acc (RUN stdlib (prepend Head Acc)))
+            (ASGN Head (RUN stdlib ("first" Input)))
+            (ASGN Tail (RUN stdlib ("rest" Input)))
+            (ASGN Acc (RUN stdlib ("prepend" Head Acc)))
             (ASGN Input Tail))
         (TARGET loop)) // Continue looping
 
@@ -278,8 +280,8 @@ Recursive factorial function - on input `5`, output is `120`:
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
-                    (TEST PARAMS 0)
-                    (ASGN RESULT 1))
+                    (TEST PARAMS "0")
+                    (ASGN RESULT "1"))
                 (TARGET END))
 
             // Recursive case
@@ -287,9 +289,9 @@ Recursive factorial function - on input `5`, output is `120`:
                 (SOURCE BEGIN)
                 (INSTR
                     (ASGN n PARAMS)
-                    (ASGN n1 (RUN stdlib (sub n 1)))
+                    (ASGN n1 (RUN stdlib ("sub" n "1")))
                     (ASGN rec (RUN fact n1))
-                    (ASGN RESULT (RUN stdlib (mul n rec))))
+                    (ASGN RESULT (RUN stdlib ("mul" n rec))))
                 (TARGET END))))
 
     // Top-level call
@@ -313,41 +315,41 @@ Returns a list up to n fibonacci numbers:
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
-                    (TEST PARAMS 0)
-                    (ASGN RESULT (0)))
+                    (TEST PARAMS "0")
+                    (ASGN RESULT "0"))
                 (TARGET END))
 
-            // fib(1) -> (0 1)
+            // fib(1) -> ("0" "1")
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
-                    (TEST PARAMS 1)
-                    (ASGN RESULT (0 1)))
+                    (TEST PARAMS "1")
+                    (ASGN RESULT "1"))
                 (TARGET END))
 
             // fib(n) -> fib(n - 1) + fib(n - 2)
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
-                    (ASGN i 1)
-                    (ASGN acc (0 1)))
+                    (ASGN n1 "0")
+                    (ASGN n2 "1")
+                    (ASGN i "1"))
                 (TARGET loop))
 
             (EDGE
                 (SOURCE loop)
                 (INSTR
                     (TEST i PARAMS)
-                    (ASGN RESULT acc))
+                    (ASGN RESULT n3))
                 (TARGET END))
 
             (EDGE
                 (SOURCE loop)
                 (INSTR
-                    (ASGN n1 (RUN stdlib (sub (RUN stdlib (lstlen acc)) 1)))
-                    (ASGN n2 (RUN stdlib (sub n1 1)))
-                    (ASGN f (RUN stdlib (add (RUN stdlib (nth n1 acc)) (RUN stdlib (nth n2 acc)))))
-                    (ASGN acc (RUN stdlib (append acc f)))
-                    (ASGN i (RUN stdlib (add i 1))))
+                    (ASGN n3 (RUN stdlib ("add" n1 n2)))
+                    (ASGN n1 n2)
+                    (ASGN n2 n3)
+                    (ASGN i (RUN stdlib ("add" i "1"))))
                 (TARGET loop))))
 
     // Top-level call

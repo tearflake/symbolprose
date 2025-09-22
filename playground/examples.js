@@ -5,8 +5,8 @@ examples = {
    (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN X PARAMS)
-            (ASGN RESULT X))
+            (ASGN x PARAMS)
+            (ASGN RESULT x))
         (TARGET END)))
 `,
 "echo-input":
@@ -20,8 +20,8 @@ xyz
    (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (TEST PARAMS ping)
-            (ASGN RESULT pong))
+            (TEST PARAMS "ping")
+            (ASGN RESULT "pong"))
         (TARGET END)))
 `,
 "ping-pong-input":
@@ -35,20 +35,20 @@ ping
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (TEST PARAMS hi)
-            (ASGN RESULT greeting))
+            (TEST PARAMS "hi")
+            (ASGN RESULT "greeting"))
         (TARGET END))
 
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (TEST PARAMS bye)
-            (ASGN RESULT farewell))
+            (TEST PARAMS "bye")
+            (ASGN RESULT "farewell"))
         (TARGET END))
 
     (EDGE
         (SOURCE BEGIN)
-        (INSTR (ASGN RESULT unknown))
+        (INSTR (ASGN RESULT "unknown"))
         (TARGET END)))
 `,
 "hi-bye-input":
@@ -69,13 +69,13 @@ hi
     // Step 2: Check for foo
     (EDGE
         (SOURCE check)
-        (INSTR (TEST X foo))
+        (INSTR (TEST X "foo"))
         (TARGET match-foo))
 
     // Step 3: Check for bar
     (EDGE
         (SOURCE check)
-        (INSTR (TEST X bar))
+        (INSTR (TEST X "bar"))
         (TARGET match-bar))
 
     // Step 4: Fallback if no match
@@ -85,19 +85,19 @@ hi
 
     // Step 5: Match case foo
     (EDGE (SOURCE match-foo)
-        (INSTR (ASGN RESULT alpha))
+        (INSTR (ASGN RESULT "alpha"))
         (TARGET END))
 
     // Step 6: Match case bar
     (EDGE
         (SOURCE match-bar)
-        (INSTR (ASGN RESULT beta))
+        (INSTR (ASGN RESULT "beta"))
         (TARGET END))
 
     // Step 7: Default case
     (EDGE
         (SOURCE fallback)
-        (INSTR (ASGN RESULT unknown))
+        (INSTR (ASGN RESULT "unknown"))
         (TARGET END)))
 `,
 "foo-bar-input":
@@ -126,9 +126,9 @@ foo
     (EDGE
         (SOURCE loop)
         (INSTR
-            (ASGN Head (RUN stdlib (first Input)))
-            (ASGN Tail (RUN stdlib (rest Input)))
-            (ASGN Acc (RUN stdlib (prepend Head Acc)))
+            (ASGN Head (RUN stdlib ("first" Input)))
+            (ASGN Tail (RUN stdlib ("rest" Input)))
+            (ASGN Acc (RUN stdlib ("prepend" Head Acc)))
             (ASGN Input Tail))
         (TARGET loop)) // Continue looping
 
@@ -151,8 +151,8 @@ foo
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN Element (RUN stdlib (first PARAMS)))
-            (ASGN List (RUN stdlib (first (RUN stdlib (rest PARAMS))))))
+            (ASGN Element (RUN stdlib ("first" PARAMS)))
+            (ASGN List (RUN stdlib ("first" (RUN stdlib ("rest" PARAMS))))))
         (TARGET loop))
     
     // Loop condition: if Input is ()
@@ -160,21 +160,21 @@ foo
         (SOURCE loop)
         (INSTR
             (TEST List ())
-            (ASGN RESULT false))
+            (ASGN RESULT "false"))
         (TARGET END)) // done
     
     // Loop condition: if Element is found
     (EDGE
         (SOURCE loop)
         (INSTR
-            (TEST Element (RUN stdlib (first List)))
-            (ASGN RESULT true))
+            (TEST Element (RUN stdlib ("first" List)))
+            (ASGN RESULT "true"))
         (TARGET END)) // done
     
     // Fallback: process next element in list
     (EDGE
         (SOURCE loop)
-        (INSTR (ASGN List (RUN stdlib (rest List))))
+        (INSTR (ASGN List (RUN stdlib ("rest" List))))
         (TARGET loop))) // Continue looping
 `,
 "is-element-of-input":
@@ -193,8 +193,8 @@ foo
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
-                    (TEST PARAMS 0)
-                    (ASGN RESULT 1))
+                    (TEST PARAMS "0")
+                    (ASGN RESULT "1"))
                 (TARGET END))
 
             // Recursive case
@@ -202,9 +202,9 @@ foo
                 (SOURCE BEGIN)
                 (INSTR
                     (ASGN n PARAMS)
-                    (ASGN n1 (RUN stdlib (sub n 1)))
+                    (ASGN n1 (RUN stdlib ("sub" n "1")))
                     (ASGN rec (RUN fact n1))
-                    (ASGN RESULT (RUN stdlib (mul n rec))))
+                    (ASGN RESULT (RUN stdlib ("mul" n rec))))
                 (TARGET END))))
 
     // Top-level call
@@ -229,41 +229,41 @@ foo
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
-                    (TEST PARAMS 0)
-                    (ASGN RESULT (0)))
+                    (TEST PARAMS "0")
+                    (ASGN RESULT "0"))
                 (TARGET END))
 
-            // fib(1) -> (0 1)
+            // fib(1) -> ("0" "1")
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
-                    (TEST PARAMS 1)
-                    (ASGN RESULT (0 1)))
+                    (TEST PARAMS "1")
+                    (ASGN RESULT "1"))
                 (TARGET END))
 
             // fib(n) -> fib(n - 1) + fib(n - 2)
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
-                    (ASGN i 1)
-                    (ASGN acc (0 1)))
+                    (ASGN n1 "0")
+                    (ASGN n2 "1")
+                    (ASGN i "1"))
                 (TARGET loop))
 
             (EDGE
                 (SOURCE loop)
                 (INSTR
                     (TEST i PARAMS)
-                    (ASGN RESULT acc))
+                    (ASGN RESULT n3))
                 (TARGET END))
 
             (EDGE
                 (SOURCE loop)
                 (INSTR
-                    (ASGN n1 (RUN stdlib (sub (RUN stdlib (lstlen acc)) 1)))
-                    (ASGN n2 (RUN stdlib (sub n1 1)))
-                    (ASGN f (RUN stdlib (add (RUN stdlib (nth n1 acc)) (RUN stdlib (nth n2 acc)))))
-                    (ASGN acc (RUN stdlib (append acc f)))
-                    (ASGN i (RUN stdlib (add i 1))))
+                    (ASGN n3 (RUN stdlib ("add" n1 n2)))
+                    (ASGN n1 n2)
+                    (ASGN n2 n3)
+                    (ASGN i (RUN stdlib ("add" i "1"))))
                 (TARGET loop))))
 
     // Top-level call

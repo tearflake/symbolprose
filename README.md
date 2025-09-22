@@ -1,8 +1,4 @@
-```
-// under construction //
-```
-
-# symbolprose v0.5.0
+# symbolprose v0.5.1
 
 _**tags:** s-expression, intermediate-representation, imperative-programming_
 
@@ -40,7 +36,7 @@ To get a glimpse on how a Symbolprose program code looks like, we bring the "Hel
 (GRAPH
     (EDGE
         (SOURCE BEGIN)
-        (INSTR (ASGN RESULT 'Hello world!'))
+        (INSTR (ASGN RESULT "Hello world!"))
         (TARGET END)))
 ```
 
@@ -55,6 +51,3 @@ There are a some resources about Symbolprose to check out:
 
 This software is released under [MIT license](LICENSE).
 
-```
-// under construction //
-```

@@ -4,7 +4,7 @@
 
 "use strict"
 
-var Sexpr = (
+var SExpr = (
     function (obj) {
         return {
             parse: obj.parse,
@@ -323,10 +323,12 @@ var Sexpr = (
             }
             
             var quoted = false;
-            for (var i = 0; i < str.length; i++) {
-                if (str === "" || '() \t\n\r'.indexOf (str.charAt (i)) > -1) {
-                    quoted = true;
-                    break;
+            if (str.charAt(0) !== '"' && str.charAt(str.length - 1) !== '"') {
+                for (var i = 0; i < str.length; i++) {
+                    if (str === "" || '() \t\n\r'.indexOf (str.charAt (i)) > -1) {
+                        quoted = true;
+                        break;
+                    }
                 }
             }
             
@@ -351,7 +353,7 @@ var isNode = new Function ("try {return this===global;}catch(e){return false;}")
 if (isNode ()) {
     // begin of Node.js support
 
-    module.exports = Sexpr;
+    module.exports = SExpr;
     
     function escapeRegExp(string) {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string

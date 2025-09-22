@@ -17,37 +17,46 @@ var Interpreter = (
         
         function parse (program) {
             let syntax = `
-            (SEQUENCE
-                "GRAPH"
-                (ONEORMORE
-                    (CHOICE
-                        (SEQUENCE
-                            "EDGE"
-                            (SEQUENCE "SOURCE" ATOMIC)
-                            (OPTIONAL
-                                (SEQUENCE
-                                    "INSTR"
-                                    (ONEORMORE
-                                        (CHOICE
-                                            (SEQUENCE "TEST" ANY ANY)
-                                            (SEQUENCE "ASGN" ATOMIC ANY)))))
-                            (SEQUENCE "TARGET" ATOMIC))
-                        (SEQUENCE
-                            "COMPUTE"
-                            (SEQUENCE "NAME" ATOMIC)
-                            RECURSE))))
+            (
+                GRAMMAR
+                (RULE <start> <graph>)
+
+                (RULE
+                    <graph>
+                    (GROUP (MUL "GRAPH" <element> (STAR <element>))))
+
+                (RULE
+                    <element>
+                    (ADD
+                        (
+                            GROUP
+                            (MUL
+                                "EDGE"
+                                (GROUP (MUL "SOURCE" ATOMIC))
+                                (ADD
+                                    (GROUP (MUL "INSTR" <instruction> (STAR <instruction>)))
+                                    ONE)
+                                (GROUP (MUL "TARGET" ATOMIC))))
+                        (GROUP (MUL "COMPUTE" (GROUP (MUL "NAME" ATOMIC)) <graph>))))
+
+                (RULE
+                    <instruction>
+                    (ADD
+                        (GROUP (MUL "TEST" ANY ANY))
+                        (GROUP (MUL "ASGN" ATOMIC ANY)))))
             `;
-            let sSyntax = Sexpr.parse (syntax);
-            let sProgram = Sexpr.parse (program);
+            
+            let sSyntax = SExpr.parse (syntax);
+            let sProgram = SExpr.parse (program);
             
             if (sProgram.err) {
                 return sProgram;
             }
             
-            let ast = Parser.parse (sProgram, sSyntax);
+            let ast = Parser.parse (sSyntax, program);
             
             if (ast.err) {
-                let msg = Sexpr.getPosition (program, ast.path);
+                let msg = SExpr.getPosition (program, ast.path);
                 return {err: msg.err, found: msg.found, pos: msg.pos};
             }
             else {
@@ -124,38 +133,53 @@ var Interpreter = (
         function evalExpr(expr, graph, env) {
             if (!Array.isArray (expr)) {
                 if (typeof expr === "string") {
-                    if (Object.prototype.hasOwnProperty.call (env, expr)) return env[expr];
+                    if (expr.charAt (0) === '"' && expr.charAt (expr.length - 1) === '"') {
+                        return expr.substring (1, expr.length - 1);
+                    }
+                    else if (expr !== "RUN"){
+                        if (Object.prototype.hasOwnProperty.call (env, expr)) {
+                            return env[expr];
+                        }
+                        else {
+                            return NIL;
+                        }
+                    }
+                    
                     return expr;
                 }
                 return expr;
             }
-            
-            expr = expr.map(e => evalExpr (e, graph, env));
-            
-            if (Array.isArray (expr)) {
+            else {
                 if (expr[0] === "RUN" && expr.length === 3) {
+                    let fnName = "";
+                    if (expr[2][0].charAt (0) === '"' && expr[2][0].charAt (expr[2][0].length - 1) === '"') {
+                        fnName = expr[2][0].substring (1, expr[2][0].length - 1);
+                    }
+                    
+                    if (expr[1] === "stdlib" && BUILTINS[fnName]) {
+                        return BUILTINS[fnName](["RUN", "stdlib", evalExpr (expr[2], graph, env)]);
+                    }
+
+                    if (Object.prototype.hasOwnProperty.call (env, expr[1])) {
+                        expr[1] = env[expr[1]];
+                    }
+
                     let parent = graph;
                     while (parent) {
                         let child = parent.children[expr[1]];
                         if (child) {
-                            var ran = runLowLevel (child, expr[2]);
-                            if (ran) {
-                                return runLowLevel (child, expr[2]);
-                            }
+                            return runLowLevel (child, evalExpr (expr[2], graph, env));
                         }
                         parent = parent.parent;
                     }
-                    
-                    if (expr[1] === "stdlib" && BUILTINS[expr[2][0]])
-                        return BUILTINS[expr[2][0]](expr);
                 }
-            }
           
-            return expr;
+                return expr.map(e => evalExpr (e, graph, env));
+            }
         }
 
         function run (program, params) {
-            var params = Sexpr.parse (params);
+            var params = SExpr.parse (params);
             if (params.err) return params;
             return runLowLevel (makeGraph (program), params);
         }
@@ -212,7 +236,7 @@ var Interpreter = (
         }
         
         var stringify = function (arr) {
-            return Sexpr.stringify (arr);
+            return SExpr.stringify (arr);
         }
 
         return {
@@ -229,8 +253,8 @@ var isNode = new Function ("try {return this===global;}catch(e){return false;}")
 if (isNode ()) {
     // begin of Node.js support
     
-    var Sexpr = require ("./s-expr.js");
-    var Sexpr = require ("./parser.js");
+    var SExpr = require ("./s-expr.js");
+    var SExpr = require ("./parser.js");
     module.exports = Interpreter;
     
     // end of Node.js support
