@@ -5,8 +5,8 @@ examples = {
    (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN X PARAMS)
-            (ASGN RESULT X))
+            (ASGN x PARAMS)
+            (ASGN RESULT x))
         (TARGET END)))
 `,
 "echo-input":
@@ -63,19 +63,19 @@ hi
     // Step 1: Load input
     (EDGE
         (SOURCE BEGIN)
-        (INSTR (ASGN X PARAMS))
+        (INSTR (ASGN x PARAMS))
         (TARGET check))
 
     // Step 2: Check for foo
     (EDGE
         (SOURCE check)
-        (INSTR (TEST X "foo"))
+        (INSTR (TEST x "foo"))
         (TARGET match-foo))
 
     // Step 3: Check for bar
     (EDGE
         (SOURCE check)
-        (INSTR (TEST X "bar"))
+        (INSTR (TEST x "bar"))
         (TARGET match-bar))
 
     // Step 4: Fallback if no match
@@ -112,30 +112,30 @@ foo
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN Input PARAMS)
-            (ASGN Acc ()))
+            (ASGN input PARAMS)
+            (ASGN acc ()))
         (TARGET loop))
 
-    // Loop condition: if Input is ()
+    // Loop condition: if input is ()
     (EDGE
         (SOURCE loop)
-        (INSTR (TEST Input ()))
+        (INSTR (TEST input ()))
         (TARGET done)) // go to done
     
     // Fallback: Process one element
     (EDGE
         (SOURCE loop)
         (INSTR
-            (ASGN Head (RUN stdlib (first Input)))
-            (ASGN Tail (RUN stdlib (rest Input)))
-            (ASGN Acc (RUN stdlib (prepend Head Acc)))
-            (ASGN Input Tail))
+            (ASGN head (RUN stdlib (first input)))
+            (ASGN tail (RUN stdlib (rest input)))
+            (ASGN acc (RUN stdlib (prepend head acc)))
+            (ASGN input tail))
         (TARGET loop)) // Continue looping
 
     // Final step: store reversed RESULT
     (EDGE
         (SOURCE done)
-        (INSTR (ASGN RESULT Acc))
+        (INSTR (ASGN RESULT acc))
         (TARGET END)))
 `,
 "reverse-input":
@@ -151,30 +151,30 @@ foo
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN Element (RUN stdlib (nth "0" PARAMS)))
-            (ASGN List    (RUN stdlib (nth "1" PARAMS))))
+            (ASGN element (RUN stdlib (nth "0" PARAMS)))
+            (ASGN list    (RUN stdlib (nth "1" PARAMS))))
         (TARGET loop))
     
-    // Loop condition: if Input is ()
+    // Loop condition: if input is ()
     (EDGE
         (SOURCE loop)
         (INSTR
-            (TEST List ())
+            (TEST list ())
             (ASGN RESULT "false"))
         (TARGET END)) // done
     
-    // Loop condition: if Element is found
+    // Loop condition: if element is found
     (EDGE
         (SOURCE loop)
         (INSTR
-            (TEST Element (RUN stdlib (first List)))
+            (TEST element (RUN stdlib (first list)))
             (ASGN RESULT "true"))
         (TARGET END)) // done
     
     // Fallback: process next element in list
     (EDGE
         (SOURCE loop)
-        (INSTR (ASGN List (RUN stdlib (rest List))))
+        (INSTR (ASGN list (RUN stdlib (rest list))))
         (TARGET loop))) // Continue looping
 `,
 "is-element-of-input":

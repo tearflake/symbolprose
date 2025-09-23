@@ -133,7 +133,7 @@ const BUILTINS = {
     const elem = args[2][1];
     const lst = args[2][2];
     if (!Array.isArray(lst)) return {err: "Parameters not valid"};
-    if (lst[elem]) return lst[elem];
+    if (lst[this.unquote(elem)]) return lst[this.unquote(elem)];
     return [];
   },
   
