@@ -133,55 +133,74 @@ var Interpreter = (
         function evalExpr(expr, graph, env) {
             if (!Array.isArray (expr)) {
                 if (typeof expr === "string") {
-                    if (expr.charAt (0) === '"' && expr.charAt (expr.length - 1) === '"') {
+                    /*if (expr.charAt (0) === '"' && expr.charAt (expr.length - 1) === '"') {
                         return expr.substring (1, expr.length - 1);
                     }
-                    else if (expr !== "RUN"){
-                        if (Object.prototype.hasOwnProperty.call (env, expr)) {
-                            return env[expr];
-                        }
-                        else {
-                            return NIL;
-                        }
+                    else*/ if (Object.prototype.hasOwnProperty.call (env, expr)) {
+                        return env[expr];
                     }
-                    
-                    return expr;
-                }
-                return expr;
-            }
-            else {
-                if (expr[0] === "RUN" && expr.length === 3) {
-                    let fnName = "";
-                    if (expr[2][0].charAt (0) === '"' && expr[2][0].charAt (expr[2][0].length - 1) === '"') {
-                        fnName = expr[2][0].substring (1, expr[2][0].length - 1);
-                    }
-                    
-                    if (expr[1] === "stdlib" && BUILTINS[fnName]) {
-                        return BUILTINS[fnName](["RUN", "stdlib", evalExpr (expr[2], graph, env)]);
-                    }
-
-                    if (Object.prototype.hasOwnProperty.call (env, expr[1])) {
-                        expr[1] = env[expr[1]];
-                    }
-
-                    let parent = graph;
-                    while (parent) {
-                        let child = parent.children[expr[1]];
-                        if (child) {
-                            return runLowLevel (child, evalExpr (expr[2], graph, env));
-                        }
-                        parent = parent.parent;
+                    else {
+                        return expr;
                     }
                 }
-          
-                return expr.map(e => evalExpr (e, graph, env));
             }
+
+            expr = expr.map(e => evalExpr (e, graph, env));
+
+            if (expr[0] === "RUN" && expr.length === 3) {
+                if (Object.prototype.hasOwnProperty.call (env, expr[1])) {
+                    expr[1] = env[expr[1]];
+                }
+
+                let parent = graph;
+                while (parent) {
+                    let child = parent.children[expr[1]];
+                    if (child) {
+                        return runLowLevel (child, evalExpr (expr[2], graph, env));
+                    }
+                    parent = parent.parent;
+                }
+                
+                let fnName = "";
+                if (expr[2][0].charAt (0) === '"' && expr[2][0].charAt (expr[2][0].length - 1) === '"') {
+                    fnName = expr[2][0].substring (1, expr[2][0].length - 1);
+                }
+                
+                if (expr[1] === "stdlib" && BUILTINS[fnName]) {
+                    return quote (BUILTINS[fnName](["RUN", "stdlib", unquote (evalExpr (expr[2], graph, env))]));
+                }
+
+                return {err: `Undefined function ${expr[1]}`};
+            }
+      
+            return expr;
+        }
+        
+        function unquote(expr) {
+            if (!Array.isArray (expr)) {
+                if (expr.charAt (0) === '"' && expr.charAt (expr.length - 1) === '"') {
+                    return expr.substring (1, expr.length - 1);
+                }
+                else {
+                    return `${expr}`;
+                }
+            }
+      
+            return expr.map(e => unquote (e));
+        }
+
+        function quote(expr) {
+            if (!Array.isArray (expr)) {
+                return `"${expr}"`;
+            }
+      
+            return expr.map(e => quote (e));
         }
 
         function run (program, params) {
             var params = SExpr.parse (params);
             if (params.err) return params;
-            return runLowLevel (makeGraph (program), params);
+            return runLowLevel (makeGraph (program), quote (params));
         }
 
         function runLowLevel (graph, params) {
@@ -228,7 +247,7 @@ var Interpreter = (
                     return {err: "Runtime error: no more fallback edges from node: " + node};
                 }
 
-                return env["RESULT"];
+                return unquote (env["RESULT"]);
             }
             catch (e) {
                 return {err: e.message};

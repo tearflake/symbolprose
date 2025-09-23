@@ -34,7 +34,7 @@ Instr       : {
 
 // Core interpreter
 
-function run (graph: Graph, params: SExpr)
+function run(graph: Graph, params: SExpr)
     env["PARAMS"] = params
     env["RESULT"] = "NIL"
 
@@ -67,19 +67,14 @@ function evalExpr(value: SExpr, graph: Graph, env: Env)
     if value is Atom
         if value is string
             return unquoted value
-        else
-            if value !== "RUN"
-                if value in env
-                    return env[value]
-                else
-                    return "NIL"
-            
-            else
-                return value
+        else if value in env
+            return env[value]
+
+        return value
 
     if value[0] == "RUN"
-        if value[1] == "stdlib" and value[2][0] in internalFunc
-            return internalFunc[value[2][0]](evalExpr(value[2], graph, env), env)
+        if value[1] in env
+            value[1] = env[value[1]];
             
         parent = graph;
         while parent
@@ -88,6 +83,11 @@ function evalExpr(value: SExpr, graph: Graph, env: Env)
                 return run (child, evalExpr(value[2], graph, env));
 
             parent = parent.parent;
+        
+        if value[1] == "stdlib" and unquoted value[2][0] in internalFunc
+            return internalFunc[unquoted value[2][0]](evalExpr(value[2], graph, env), env);
+        
+        raise error "Undefined function";
 
     return [evalExpr(v, graph, env) for v in value]
 

@@ -192,7 +192,7 @@ The program outputs `alpha` on `foo` input, `beta` on `bar` input, or `unknown` 
 
 ### Example 5: is-element-of
 
-This example returns `true` if the first parameter is contained within second parameter list, `false` otherise:
+This example returns `true` if the first parameter is contained within second parameter list, `false` otherwise:
 
 ```
 (GRAPH
@@ -201,8 +201,8 @@ This example returns `true` if the first parameter is contained within second pa
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN Element (RUN stdlib ("first" PARAMS)))
-            (ASGN List (RUN stdlib ("first" (RUN stdlib ("rest" PARAMS))))))
+            (ASGN Element (RUN stdlib ("nth" "0" PARAMS)))
+            (ASGN List    (RUN stdlib ("nth" "1" PARAMS))))
         (TARGET loop))
     
     // Loop condition: if Input is ()
