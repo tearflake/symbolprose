@@ -132,16 +132,11 @@ var Interpreter = (
 
         function evalExpr(expr, graph, env) {
             if (!Array.isArray (expr)) {
-                if (typeof expr === "string") {
-                    /*if (expr.charAt (0) === '"' && expr.charAt (expr.length - 1) === '"') {
-                        return expr.substring (1, expr.length - 1);
-                    }
-                    else*/ if (Object.prototype.hasOwnProperty.call (env, expr)) {
-                        return env[expr];
-                    }
-                    else {
-                        return expr;
-                    }
+                if (Object.prototype.hasOwnProperty.call (env, expr)) {
+                    return env[expr];
+                }
+                else {
+                    return expr;
                 }
             }
 
@@ -161,40 +156,20 @@ var Interpreter = (
                     parent = parent.parent;
                 }
                 
-                let fnName = "";
-                if (expr[2][0].charAt (0) === '"' && expr[2][0].charAt (expr[2][0].length - 1) === '"') {
-                    fnName = expr[2][0].substring (1, expr[2][0].length - 1);
-                }
-                
-                if (expr[1] === "stdlib" && BUILTINS[fnName]) {
-                    return quote (BUILTINS[fnName](["RUN", "stdlib", unquote (evalExpr (expr[2], graph, env))]));
+                if (expr[1] === "stdlib") {
+                    let fnName = expr[2][0];
+                    if (BUILTINS[fnName]) {
+                        return BUILTINS[fnName](["RUN", "stdlib", evalExpr (expr[2], graph, env)]);
+                    }
+                    else {
+                        return {err: `Undefined stdlib function ${fnName}`};
+                    }
                 }
 
                 return {err: `Undefined function ${expr[1]}`};
             }
       
             return expr;
-        }
-        
-        function unquote(expr) {
-            if (!Array.isArray (expr)) {
-                if (expr.charAt (0) === '"' && expr.charAt (expr.length - 1) === '"') {
-                    return expr.substring (1, expr.length - 1);
-                }
-                else {
-                    return `${expr}`;
-                }
-            }
-      
-            return expr.map(e => unquote (e));
-        }
-
-        function quote(expr) {
-            if (!Array.isArray (expr)) {
-                return `"${expr}"`;
-            }
-      
-            return expr.map(e => quote (e));
         }
 
         function run (program, params) {
@@ -229,11 +204,21 @@ var Interpreter = (
                         for (let j = 0; j < edge.instructions.length; j++) {
                             let instruction = edge.instructions[j];
                             if (instruction.name === "ASGN") {
-                                env[instruction.var] = evalExpr (instruction.value, graph, env);
+                                var res = evalExpr (instruction.value, graph, env);
+                                if (res.err)
+                                    return res;
+                                    
+                                env[instruction.var] = res;
                             }
                             else if (instruction.name === "TEST") {
                                 const a = evalExpr (instruction.lft, graph, env);
+                                if (a.err)
+                                    return a;
+                                    
                                 const b = evalExpr (instruction.rgt, graph, env);
+                                if (b.err)
+                                    return b;
+                                    
                                 if (!deepEqual (a, b)) {
                                     continue loop2;
                                 }
@@ -254,6 +239,27 @@ var Interpreter = (
             }
         }
         
+        function unquote(expr) {
+            if (!Array.isArray (expr)) {
+                if (expr.charAt (0) === '"' && expr.charAt (expr.length - 1) === '"') {
+                    return expr.substring (1, expr.length - 1);
+                }
+                else {
+                    return `${expr}`;
+                }
+            }
+      
+            return expr.map(e => unquote (e));
+        }
+
+        function quote(expr) {
+            if (!Array.isArray (expr)) {
+                return `"${expr}"`;
+            }
+      
+            return expr.map(e => quote (e));
+        }
+
         var stringify = function (arr) {
             return SExpr.stringify (arr);
         }

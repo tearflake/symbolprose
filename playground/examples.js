@@ -126,9 +126,9 @@ foo
     (EDGE
         (SOURCE loop)
         (INSTR
-            (ASGN Head (RUN stdlib ("first" Input)))
-            (ASGN Tail (RUN stdlib ("rest" Input)))
-            (ASGN Acc (RUN stdlib ("prepend" Head Acc)))
+            (ASGN Head (RUN stdlib (first Input)))
+            (ASGN Tail (RUN stdlib (rest Input)))
+            (ASGN Acc (RUN stdlib (prepend Head Acc)))
             (ASGN Input Tail))
         (TARGET loop)) // Continue looping
 
@@ -151,8 +151,8 @@ foo
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN Element (RUN stdlib ("nth" "0" PARAMS)))
-            (ASGN List    (RUN stdlib ("nth" "1" PARAMS))))
+            (ASGN Element (RUN stdlib (nth "0" PARAMS)))
+            (ASGN List    (RUN stdlib (nth "1" PARAMS))))
         (TARGET loop))
     
     // Loop condition: if Input is ()
@@ -167,14 +167,14 @@ foo
     (EDGE
         (SOURCE loop)
         (INSTR
-            (TEST Element (RUN stdlib ("first" List)))
+            (TEST Element (RUN stdlib (first List)))
             (ASGN RESULT "true"))
         (TARGET END)) // done
     
     // Fallback: process next element in list
     (EDGE
         (SOURCE loop)
-        (INSTR (ASGN List (RUN stdlib ("rest" List))))
+        (INSTR (ASGN List (RUN stdlib (rest List))))
         (TARGET loop))) // Continue looping
 `,
 "is-element-of-input":
@@ -202,9 +202,9 @@ foo
                 (SOURCE BEGIN)
                 (INSTR
                     (ASGN n PARAMS)
-                    (ASGN n1 (RUN stdlib ("sub" n "1")))
+                    (ASGN n1 (RUN stdlib (sub n "1")))
                     (ASGN rec (RUN fact n1))
-                    (ASGN RESULT (RUN stdlib ("mul" n rec))))
+                    (ASGN RESULT (RUN stdlib (mul n rec))))
                 (TARGET END))))
 
     // Top-level call
@@ -225,7 +225,7 @@ foo
         (NAME fib)
         (GRAPH
             
-            // fib(0) -> (0)
+            // fib(0) -> 0
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
@@ -233,7 +233,7 @@ foo
                     (ASGN RESULT "0"))
                 (TARGET END))
 
-            // fib(1) -> ("0" "1")
+            // fib(1) -> 1
             (EDGE
                 (SOURCE BEGIN)
                 (INSTR
@@ -260,10 +260,10 @@ foo
             (EDGE
                 (SOURCE loop)
                 (INSTR
-                    (ASGN n3 (RUN stdlib ("add" n1 n2)))
+                    (ASGN n3 (RUN stdlib (add n1 n2)))
                     (ASGN n1 n2)
                     (ASGN n2 n3)
-                    (ASGN i (RUN stdlib ("add" i "1"))))
+                    (ASGN i (RUN stdlib (add i "1"))))
                 (TARGET loop))))
 
     // Top-level call

@@ -65,13 +65,14 @@ function run(graph: Graph, params: SExpr)
 
 function evalExpr(value: SExpr, graph: Graph, env: Env)
     if value is Atom
-        if value is string
-            return unquoted value
-        else if value in env
+        if value in env
             return env[value]
 
-        return value
-
+        else
+            return value
+        
+    expr = [evalExpr(v, graph, env) for v in value];
+    
     if value[0] == "RUN"
         if value[1] in env
             value[1] = env[value[1]];
@@ -89,7 +90,7 @@ function evalExpr(value: SExpr, graph: Graph, env: Env)
         
         raise error "Undefined function";
 
-    return [evalExpr(v, graph, env) for v in value]
+    return 
 
 // Expression matching
 
