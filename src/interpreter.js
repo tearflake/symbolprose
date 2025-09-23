@@ -247,7 +247,7 @@ var Interpreter = (
                     return {err: "Runtime error: no more fallback edges from node: " + node};
                 }
 
-                return unquote (env["RESULT"]);
+                return env["RESULT"].err ? env["RESULT"] : unquote (env["RESULT"]);
             }
             catch (e) {
                 return {err: e.message};
