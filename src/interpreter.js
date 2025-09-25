@@ -7,8 +7,6 @@ var Interpreter = (
         return {
             parse: obj.parse,
             run: obj.run,
-            runLowLevel: obj.runLowLevel,
-            stringify: obj.stringify
         };
     }
 ) (
@@ -115,63 +113,6 @@ var Interpreter = (
             return graph;
         }
 
-        function deepClone(v) {
-            if (Array.isArray (v)) return v.map (deepClone);
-            return v;
-        }
-
-        function deepEqual(a, b) {
-            if (a === b) return true;
-            if (Array.isArray (a) && Array.isArray (b)) {
-                if (a.length !== b.length) return false;
-                for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false;
-                return true;
-            }
-            return (Number.isNaN (a) && Number.isNaN (b)) ? true : false;
-        }
-
-        function evalExpr(expr, graph, env) {
-            if (!Array.isArray (expr)) {
-                if (Object.prototype.hasOwnProperty.call (env, expr)) {
-                    return env[expr];
-                }
-                else {
-                    return expr;
-                }
-            }
-
-            expr = expr.map(e => evalExpr (e, graph, env));
-
-            if (expr[0] === "RUN" && expr.length === 3) {
-                if (Object.prototype.hasOwnProperty.call (env, expr[1])) {
-                    expr[1] = env[expr[1]];
-                }
-
-                let parent = graph;
-                while (parent) {
-                    let child = parent.children[expr[1]];
-                    if (child) {
-                        return runLowLevel (child, evalExpr (expr[2], graph, env));
-                    }
-                    parent = parent.parent;
-                }
-                
-                if (expr[1] === "stdlib") {
-                    let fnName = expr[2][0];
-                    if (BUILTINS[fnName]) {
-                        return BUILTINS[fnName](["RUN", "stdlib", evalExpr (expr[2], graph, env)]);
-                    }
-                    else {
-                        return {err: `Undefined stdlib function ${fnName}`};
-                    }
-                }
-
-                return {err: `Undefined function ${expr[1]}`};
-            }
-      
-            return expr;
-        }
-
         function run (program, params) {
             var params = SExpr.parse (params);
             if (params.err) return params;
@@ -238,6 +179,63 @@ var Interpreter = (
                 return {err: e.message};
             }
         }
+
+        function evalExpr(expr, graph, env) {
+            if (!Array.isArray (expr)) {
+                if (Object.prototype.hasOwnProperty.call (env, expr)) {
+                    return env[expr];
+                }
+                else {
+                    return expr;
+                }
+            }
+
+            expr = expr.map(e => evalExpr (e, graph, env));
+
+            if (expr[0] === "RUN" && expr.length === 3) {
+                if (Object.prototype.hasOwnProperty.call (env, expr[1])) {
+                    expr[1] = env[expr[1]];
+                }
+
+                let parent = graph;
+                while (parent) {
+                    let child = parent.children[expr[1]];
+                    if (child) {
+                        return runLowLevel (child, evalExpr (expr[2], graph, env));
+                    }
+                    parent = parent.parent;
+                }
+                
+                if (expr[1] === "stdlib") {
+                    let fnName = expr[2][0];
+                    if (BUILTINS[fnName]) {
+                        return BUILTINS[fnName](["RUN", "stdlib", evalExpr (expr[2], graph, env)]);
+                    }
+                    else {
+                        return {err: `Undefined stdlib function ${fnName}`};
+                    }
+                }
+
+                return {err: `Undefined function ${expr[1]}`};
+            }
+      
+            return expr;
+        }
+
+        function deepClone(v) {
+            if (Array.isArray (v)) return v.map (deepClone);
+            return v;
+        }
+
+        function deepEqual(a, b) {
+            if (a === b) return true;
+            if (Array.isArray (a) && Array.isArray (b)) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false;
+                return true;
+            }
+            return (Number.isNaN (a) && Number.isNaN (b)) ? true : false;
+        }
         
         function unquote(expr) {
             if (!Array.isArray (expr)) {
@@ -260,15 +258,9 @@ var Interpreter = (
             return expr.map(e => quote (e));
         }
 
-        var stringify = function (arr) {
-            return SExpr.stringify (arr);
-        }
-
         return {
             parse: parse,
             run: run,
-            runLowLevel: runLowLevel,
-            stringify: stringify,
         }
     }) ()
 );

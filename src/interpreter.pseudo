@@ -6,17 +6,12 @@
 
 Atom        : string                  // atoms
 SExpr       : Atom | [SExpr]              // nested symbolic expressions (list form)
-Env         : {
-    name: string -> value: Sexpr | Graph  // enviroment variables
+Env         : Map<string, SExpr>          // enviroment variables
 }
-Graph       : {
-    edges: {
-        source:string -> [Edge]           // nodes
-    },
+Graph       :
+    edges: Map<string, [Edge]>,
     parent: Graph,
-    children : {
-        name:string -> Graph
-    }
+    children : Map<string, Graph>
 }
 Edge        : {
     instructions: [Instr],                // instructions
@@ -88,7 +83,7 @@ function evalExpr(value: SExpr, graph: Graph, env: Env)
         if value[1] == "stdlib" and unquoted value[2][0] in internalFunc
             return internalFunc[unquoted value[2][0]](evalExpr(value[2], graph, env), env);
         
-        raise error "Undefined function";
+        Error("Undefined function");
 
     return 
 

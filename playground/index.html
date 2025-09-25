@@ -422,7 +422,7 @@
                     } else {
                         var trewritten = (Date.now () - tm)
                         document.getElementById("tm").innerHTML = "(graph parsed in " + tcompiled + "ms)" + " (program interpreted in " + trewritten + "ms)";
-                        output1.value = Interpreter.stringify (output);
+                        output1.value = SExpr.stringify (output);
                     }
                 }, 0);
             }
