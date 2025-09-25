@@ -114,9 +114,10 @@ var Interpreter = (
         }
 
         function run (program, params) {
-            var params = SExpr.parse (params);
+            params = SExpr.parse (params);
             if (params.err) return params;
-            return runLowLevel (makeGraph (program), quote (params));
+            let res = runLowLevel (makeGraph (program), quote (params));
+            return res.err ? res : unquote (res);
         }
 
         function runLowLevel (graph, params) {
@@ -173,7 +174,7 @@ var Interpreter = (
                     return {err: "Runtime error: no more fallback edges from node: " + node};
                 }
 
-                return env["RESULT"].err ? env["RESULT"] : unquote (env["RESULT"]);
+                return env["RESULT"];
             }
             catch (e) {
                 return {err: e.message};

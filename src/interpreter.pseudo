@@ -30,6 +30,9 @@ Instr       : {
 // Core interpreter
 
 function run(graph: Graph, params: SExpr)
+    return unquote(runLowLevel(graph, quote(params)));
+
+function runLowLevel(graph: Graph, params: SExpr)
     env["PARAMS"] = params
     env["RESULT"] = "NIL"
 
@@ -38,7 +41,7 @@ function run(graph: Graph, params: SExpr)
         if node in graph.edges
             edges = graph.edges[node]
         else
-            error "node does not exist"
+            Error("node does not exist")
         
         loop2: for edge in edges
             for instr in edge.instructions
@@ -80,8 +83,8 @@ function evalExpr(value: SExpr, graph: Graph, env: Env)
 
             parent = parent.parent;
         
-        if value[1] == "stdlib" and unquoted value[2][0] in internalFunc
-            return internalFunc[unquoted value[2][0]](evalExpr(value[2], graph, env), env);
+        if value[1] == "stdlib" and value[2][0] in internalFunc
+            return internalFunc[value[2][0]](evalExpr(value[2], graph, env), env);
         
         Error("Undefined function");
 
