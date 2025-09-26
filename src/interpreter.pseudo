@@ -105,3 +105,18 @@ function deepEqual(a: SExpr, b: SExpr)
 
     return false
 
+function quote(value: SExpr)
+    if value is Atom
+        return '"' + value + '"'
+        
+    return [evalExpr(v) for v in value];
+
+function unquote(value: SExpr)
+    if value is Atom
+        if (value.charAt(0) == '"' and value.chatAt(value.length - 1) == '"'
+            return value.substring(1, value.length - 1)
+        else
+            return value
+            
+    return [evalExpr(v) for v in value];
+
