@@ -86,7 +86,7 @@ function compute (expr: SExpr, graph: Graph, env: Env)
     while parent
         child = parent.children[value[1]]
         if (child)
-            return run (child, evalExpr(value[2], graph, env))
+            return runLowLevel(child, evalExpr(value[2], graph, env))
 
         parent = parent.parent
     
