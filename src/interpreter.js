@@ -197,32 +197,36 @@ var Interpreter = (
                 if (Object.prototype.hasOwnProperty.call (env, expr[1])) {
                     expr[1] = env[expr[1]];
                 }
-
-                let parent = graph;
-                while (parent) {
-                    let child = parent.children[expr[1]];
-                    if (child) {
-                        return runLowLevel (child, evalExpr (expr[2], graph, env));
-                    }
-                    parent = parent.parent;
-                }
                 
-                if (expr[1] === "stdlib") {
-                    let fnName = expr[2][0];
-                    if (BUILTINS[fnName]) {
-                        return BUILTINS[fnName](["RUN", "stdlib", evalExpr (expr[2], graph, env)]);
-                    }
-                    else {
-                        return {err: `Undefined stdlib function ${fnName}`};
-                    }
-                }
-
-                return {err: `Undefined function ${expr[1]}`};
+                return compute (expr, graph, env);
             }
       
             return expr;
         }
 
+        function compute (expr, graph, env) {
+            let parent = graph;
+            while (parent) {
+                let child = parent.children[expr[1]];
+                if (child) {
+                    return runLowLevel (child, evalExpr (expr[2], graph, env));
+                }
+                parent = parent.parent;
+            }
+            
+            if (expr[1] === "stdlib") {
+                let fnName = expr[2][0];
+                if (BUILTINS[fnName]) {
+                    return BUILTINS[fnName](["RUN", "stdlib", evalExpr (expr[2], graph, env)]);
+                }
+                else {
+                    return {err: `Undefined stdlib function ${fnName}`};
+                }
+            }
+
+            return {err: `Undefined function ${expr[1]}`};
+        }
+        
         function deepClone(v) {
             if (Array.isArray (v)) return v.map (deepClone);
             return v;

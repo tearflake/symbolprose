@@ -74,21 +74,30 @@ function evalExpr(value: SExpr, graph: Graph, env: Env)
     if value[0] == "RUN"
         if value[1] in env
             value[1] = env[value[1]];
-            
-        parent = graph;
-        while parent
-            child = parent.children[value[1]];
-            if (child)
-                return run (child, evalExpr(value[2], graph, env));
-
-            parent = parent.parent;
         
-        if value[1] == "stdlib" and value[2][0] in internalFunc
-            return internalFunc[value[2][0]](evalExpr(value[2], graph, env), env);
-        
-        Error("Undefined function");
+        return compute(value, graph, env)
 
-    return 
+    return expr 
+
+// Compute subgraph
+
+function compute (expr: SExpr, graph: Graph, env: Env)
+    parent = graph;
+    while parent
+        child = parent.children[value[1]]
+        if (child)
+            return run (child, evalExpr(value[2], graph, env))
+
+        parent = parent.parent
+    
+    if value[1] == "stdlib"
+        if value[2][0] in internalFunc
+            return internalFunc[value[2][0]](evalExpr(value[2], graph, env), env)
+        
+        else
+            Error("Undefined function");
+    
+    Error("Undefined function");
 
 // Expression matching
 
