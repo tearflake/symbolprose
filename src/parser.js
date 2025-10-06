@@ -15,173 +15,126 @@ var Parser = (
 
         let parseGrammar = function (grammar) {
             let syntax = `
-            (GRAMMAR
-                (RULE
-                    <start>
-                    (GROUP (MUL "GRAMMAR" <rule> (STAR <rule>))))
+                (RULES
+                    (NORM <start> ("RULES" <rules>))
 
-                (RULE
-                    <rule>
-                    (GROUP (MUL "RULE" ATOMIC <expr>)))
+                    (NORM <rules> (<rule> <rules>))
+                    (NORM <rules> (<rule> ()))
 
-                (RULE
-                    <expr>
-                    (ADD
-                        ()
-                        ATOMIC
-                        (GROUP (MUL "GROUP" <expr>))
-                        (GROUP (MUL "ADD" (STAR <expr>)))
-                        (GROUP (MUL "MUL" (STAR <expr>)))
-                        (GROUP (MUL "STAR" <expr>))
-                        (GROUP (MUL "ATOM" <expr>)))))
+                    (FLAT <rule> ("FLAT" IDENTIFIER ANY))
+                    (FLAT <rule> ("NORM" IDENTIFIER ANY))
+                    (FLAT <rule> ("ATOM" IDENTIFIER ANY))
+                )
             `
 
             let sSyntax = SExpr.parse (syntax);
             let sGrammar = SExpr.parse (grammar);
             if (sGrammar.err) return sGrammar;
-            let [length, path, ok] = parseLowLevel (sSyntax, sGrammar);
+            let [path, ok] = parseLowLevel (sSyntax, sGrammar);
 
-            return formatOutput (ok, sGrammar, grammar, path);
+            return formatOutput (ok, sGrammar, grammar, denormalizeIndexes (path));
         }
         
         let makeGrammar = function (sexpr) {
             let rules = [];
             for (let i = 1; i < sexpr.length; i++) {
+                let ruleType = sexpr[i][0]
                 let ruleName = sexpr[i][1];
                 let ruleBody = sexpr[i][2];
-                rules[ruleName] = ruleBody;
+                if (!rules[ruleName]) {
+                    rules[ruleName] = [];
+                }
+                
+                rules[ruleName].push ({type: ruleType, pattern: ruleBody});
             }
             
             return rules
         }
         
-        function parse (grammar, sexpr) {
+        let parse = function (grammar, sexpr) {
             let sSexpr = SExpr.parse (sexpr);
             if (sSexpr.err) return sSexpr;
-            let [length, path, ok] = parseLowLevel (grammar, sSexpr)
+            let [path, ok] = parseLowLevel (grammar, sSexpr)
 
-            return formatOutput (ok, sSexpr, sexpr, path);
+            return formatOutput (ok, sSexpr, sexpr, denormalizeIndexes (path));
         }
         
-        function parseLowLevel (grammar, expr) {
+        let parseLowLevel = function (grammar, expr) {
             grammar = makeGrammar (grammar);
-            let pattern = grammar["<start>"];
+            let pattern = "<start>";
 
-            return match([expr], 0, pattern, grammar, [], [], false);
+            return match (normalizeSExpr (expr), pattern, grammar, [], [], false);
         }
 
-        function match (expr, idx, pattern, grammar, farPath, curPath, noTrackPath) {
-            if (!noTrackPath && compareArr (curPath, farPath) > 0) {
+        let match = function (expr, pattern, grammar, farPath, curPath, subAtomic) {
+            let ok;
+            
+            if (!subAtomic && compareArr(curPath, farPath) > 0) {
                 farPath = curPath;
             }
             
-            if (typeof expr === "string") {
-                expr = [expr];
-                idx = 0;
-            }
-            
-            let type;
-            if (Array.isArray (pattern)) {
-                type = pattern[0];
-            }
-            else {
-                type = pattern;
-            }
-            
-            if (!Array.isArray (pattern) && Object.prototype.hasOwnProperty.call (grammar, pattern)) {
-                return match (expr, idx, grammar[pattern], grammar, farPath, curPath, noTrackPath);
-            }
-            else if (idx < expr.length && Array.isArray (expr[idx]) && expr[idx].length === 0 && Array.isArray (pattern) && pattern.length === 0) {
-                return [1, farPath, true];
-            }
-            else if (idx < expr.length && !Array.isArray (expr[idx]) && '"' + expr[idx] + '"' == pattern) {
-                return [1, farPath, true];
-            }
-            else if (idx < expr.length && type === "ATOMIC") {
-                if (!Array.isArray (expr[idx])) {
-                    return [1, farPath, true];
-                }
-                else {
-                    return [0, farPath, false];
-                }
-            }
-            else if (idx < expr.length && type === "ANY") {
-                return [1, farPath, true];
-            }
-            else if (idx < expr.length && type === "GROUP") {
-                if (!Array.isArray (expr[idx])) {
-                    return [0, farPath, false];
-                }
-                
-                let [length, farPath1, ok] = match (expr[idx], 0, pattern[1], grammar, farPath, [...curPath, 0], noTrackPath);
-                farPath = farPath1;
-                if (!ok || length !== expr[idx].length) {
-                    return [0, farPath, false];
-                }
-                else {
-                    return [1, farPath, true];
-                }
-            }
-            else if (type === "ADD") {
-                for (let i = 1; i < pattern.length; i++) {
-                    let [length, farPath1, ok] = match (expr, idx, pattern[i], grammar, farPath, curPath, noTrackPath);
-                    farPath = farPath1;
+            if (typeof pattern === "string" && grammar[pattern]) {
+                let arrPat = grammar[pattern];
+                for (let i = 0; i < arrPat.length; i++) {
+                    ok = false;
+                    if (arrPat[i].type === "ATOM") {
+                        if (subAtomic || typeof expr ===  "string") {
+                            [farPath, ok] = match(subAtomic ? expr : normalizeSExpr (expr.split ("")), arrPat[i].pattern, grammar, farPath, curPath, true);
+                        }
+                    }
+                    else if (arrPat[i].type === "FLAT" && !subAtomic) {
+                        [farPath, ok] = match(expr, normalizeSExpr(arrPat[i].pattern), grammar, farPath, curPath, subAtomic);
+                    }
+                    else if (arrPat[i].type === "NORM" && !subAtomic) {
+                        [farPath, ok] = match(expr, arrPat[i].pattern, grammar, farPath, curPath, subAtomic);
+                    }
+                    
                     if (ok) {
-                        return [length, farPath, true];
+                        return [farPath, true];
                     }
                 }
-                        
-                return [0, farPath, false];
             }
-            else if (type === "MUL") {
-                let length = 0;
-                for (let i = 1; i < pattern.length; i++) {
-                    let tmpPath = [...curPath.slice(0, curPath.length - 1), idx + length];
-                    let [itemLength, farPath1, ok] = match (expr, idx + length, pattern[i], grammar, farPath, tmpPath, noTrackPath);
-                    farPath = farPath1;
-                    length += itemLength;
-                    if (!ok || idx + length > expr.length) {
-                        return [0, farPath, false];
-                    }
-                }
-                
-                return [length, farPath, true];
-            }
-            else if (type === "STAR") {
-                let length = 0;
-                while (true) {
-                    let tmpPath = [...curPath.slice(0, curPath.length - 1), idx + length];
-                    let [itemLength, farPath1, ok] = match (expr, idx + length, pattern[1], grammar, farPath, tmpPath, noTrackPath);
-                    farPath = farPath1;
-                    length += itemLength;
-                    if (!ok || idx + length >= expr.length || itemLength == 0) {
-                        break;
-                    }
+            else if (Array.isArray (expr) && Array.isArray (pattern)) {
+                if (expr.length !== pattern.length) {
+                    return [farPath, false];
                 }
 
-                return [length, farPath, true];
-            }
-            else if (type === "ATOM") {
-                if (!Array.isArray (expr[idx])) {
-                    let [itemLength, farPath1, ok] = match ([expr[idx].split("")], 0, ["GROUP", pattern[1]], grammar, farPath, curPath, true);
-                    farPath = farPath1;
-                    return [ok ? 1: 0, farPath, ok]
+                for (let idx = 0; idx < expr.length; idx++) {
+                    let tmpPath = [...curPath, idx];
+                    [farPath, ok] = match (expr[idx], pattern[idx], grammar, farPath, tmpPath, subAtomic);
+                    if (!ok) {
+                        return [farPath, false];
+                    }
                 }
-                else {
-                    return [0, farPath, false];
+                
+                return [farPath, true];
+            }
+            else if (typeof expr === "string" && '"' + expr + '"' === pattern) {
+                return [farPath, true];
+            }
+            else if (pattern === "STRING") {
+                if (typeof expr === "string" && expr.charAt(0) === '"' && expr.charAt(expr.length - 1) === '"') {
+                    return [farPath, true];
                 }
             }
-            else if (type === "ONE") {
-                return [0, farPath, true];
+            else if (pattern === "IDENTIFIER") {
+                if (typeof expr === "string" && expr.charAt(0) !== '"' && expr.charAt(expr.length - 1) !== '"') {
+                    return [farPath, true];
+                }
             }
-            else if (type === "ZERO") {
-                return [0, farPath, false];
+            else if (pattern === "ATOMIC") {
+                if (typeof expr === "string") {
+                    return [farPath, true];
+                }
+            }
+            else if (pattern === "ANY") {
+                return [farPath, true];
             }
             
-            return [0, farPath, false];
+            return [farPath, false];
         }
         
-        function compareArr (arr1, arr2) {
+        let compareArr = function (arr1, arr2) {
             for (var i = 0; i < arr1.length; i++) {
                 if (i < arr2.length) {
                     if (arr1[i] < arr2[i]) {
@@ -206,8 +159,56 @@ var Parser = (
                 return 0;
             }
         }
+
+        var denormalizeIndexes = function (nm) {
+            var dnm = [];
+            var idx = 0;
+            for (var i = 0; i < nm.length; i++) {
+                if (nm[i] === 0) {
+                    dnm.push (idx);
+                    idx = 0;
+                }
+                else {
+                    idx++;
+                }
+            }
+            
+            if (idx > 0) {
+                dnm.push (idx);
+            }
+            
+            return dnm;
+        };
+
+        var normalizeSExpr = function (expr) {
+            var stack = [], item;
+            var car = expr, cdr = [];
+            stack.push ({car: expr});
+            while (stack.length > 0) {
+                item = stack.pop ();
+                if (item.car !== undefined) {
+                    car = item.car;
+                    if (Array.isArray (car)) {
+                        stack.push ({cdr: cdr})
+                        cdr = [];
+                        for (var i = 0;  i < car.length; i++) {
+                            stack.push ({car: car[i]})
+                        }
+                    }
+                    else {
+                        cdr = [car, cdr];
+                    }
+                }
+                else {
+                    car = cdr;
+                    cdr = [car, item.cdr];
+                }
+            }
+            
+            return car;
+        };
         
-        function formatOutput(ok, sexpr, text, path) {
+        let formatOutput = function (ok, sexpr, text, path) {
             if (ok) {
                 return sexpr;
             }   
@@ -218,8 +219,8 @@ var Parser = (
         }
 
         return {
-            parse: parse,
-            parseGrammar: parseGrammar
+            parseGrammar: parseGrammar,
+            parse: parse
         }
     }) ()
 );

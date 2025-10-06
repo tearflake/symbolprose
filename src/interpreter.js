@@ -15,33 +15,25 @@ var Interpreter = (
         
         function parse (program) {
             let syntax = `
-            (
-                GRAMMAR
-                (RULE <start> <graph>)
+                (RULES
+                    (FLAT <start> <graph>)
 
-                (RULE
-                    <graph>
-                    (GROUP (MUL "GRAPH" <element> (STAR <element>))))
-
-                (RULE
-                    <element>
-                    (ADD
-                        (
-                            GROUP
-                            (MUL
-                                "EDGE"
-                                (GROUP (MUL "SOURCE" ATOMIC))
-                                (ADD
-                                    (GROUP (MUL "INSTR" <instruction> (STAR <instruction>)))
-                                    ONE)
-                                (GROUP (MUL "TARGET" ATOMIC))))
-                        (GROUP (MUL "COMPUTE" (GROUP (MUL "NAME" ATOMIC)) <graph>))))
-
-                (RULE
-                    <instruction>
-                    (ADD
-                        (GROUP (MUL "TEST" ANY ANY))
-                        (GROUP (MUL "ASGN" ATOMIC ANY)))))
+                    (NORM <graph> ("GRAPH" <elements>))
+                    
+                    (NORM <elements> (<element> <elements>))
+                    (NORM <elements> (<element> ()))
+                    
+                    (FLAT <element> ("EDGE" ("SOURCE" IDENTIFIER) <instr> ("TARGET" IDENTIFIER)))
+                    (FLAT <element> ("EDGE" ("SOURCE" IDENTIFIER) ("TARGET" IDENTIFIER)))
+                    (FLAT <element> ("COMPUTE" ("NAME" IDENTIFIER) <graph>))
+                    
+                    (NORM <instr> ("INSTR" <instructions>))
+                    
+                    (NORM <instructions> (<instruction> <instructions>))
+                    (NORM <instructions> (<instruction> ()))
+                    
+                    (FLAT <instruction> ("TEST" ANY ANY))
+                    (FLAT <instruction> ("ASGN" IDENTIFIER ANY)))
             `;
             
             let sSyntax = SExpr.parse (syntax);

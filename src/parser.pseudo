@@ -4,126 +4,82 @@
 
 // Data structures
 
-Atom        : string                 // noTrackPath symbol
+Atom        : string                 // atomic expression
 SExpr       : Atom | [SExpr]             // symbolic expression (list form)
 Path        : [Int]                      // index path inside S-expression
-Grammar     : Map<Atom, Expr>            // grammar as collection of rules
-Expr        :                            // parsing expression AST
-      []                                 // empty list
-    | "ATOMIC"                           // matches any atom
-    | "ANY"                              // matches any S-expression
-    | Array["GROUP", Expr]               // group with parentheses
-    | Array["MUL", ...Expr]              // sequence of subexpressions
-    | Array["ADD", ...Expr]              // ordered choice
-    | Array["STAR", Expr]                // zero-or-more repetition
-    | Array["ATOM", Expr]                // matches subatomic expression
-    | "ONE"                              // always succeeds
-    | "ZERO"                             // always fails
-Result      : SExpr | Error
+Grammar     : Map<Atom, [Expr]>          // grammar as collection of rules
+Expr        : {                          // pattern
+    type: "NORM" | "FLAT" | "ATOM",
+    pattern: SExpr
+}
 
 // Core Parsing Engine
 
-function parse(expr: SExpr, grammar: Grammar, startRule: Atom): Result
-    pattern = grammar[startRule]
-    length, path, ok = match(expr, 0, pattern, grammar, [], [], false)
+function parse(expr: SExpr, grammar: Grammar): SExpr | Error
+    pattern = "<start>"
+    path, ok = match(normalizeSExpr(expr), pattern, grammar, [], [], false)
     if ok
         return expr
         
     else
-        return Error("Parse failed", path)
+        return Error("Parse failed", denormalizeIndexes(path))
 
 
 // Matching Function
 
-function match(expr: SExpr, idx: Int, pattern: Expr, grammar: Grammar, farPath: Path, curPath: Path, noTrackPath: Bool): (Int, Path, Bool)
-    if not noTrackPath and compareArr(curPath, farPath) > 0
+function match(expr: SExpr, pattern: SExpr, grammar: Grammar, farPath: Path, curPath: Path, subAtomic: Bool): (Path, Bool)
+    if not subAtomic and compareArr(curPath, farPath) > 0
         farPath = curPath
-
-    if expr is Atom
-        expr = [expr]
-        idx = 0
-    
-    if pattern is array
-        type = pattern[0]
-        
-    else
-        type = pattern
     
     if pattern is Atom and grammar contains pattern
-        return match(expr, idx, grammar[pattern], grammar, farPath, curPath, noTrackPath)
-    
-    else if idx < expr.length and Array.isArray (expr[idx]) and expr[idx].length === 0 and Array.isArray (pattern) and pattern.length === 0
-        return 1, farPath, true
-    
-    else if idx < expr.length and expr[idx] is Atom and '"' + expr[idx] + '"' == pattern
-        return 1, farPath, true
-    
-    else if idx < expr.length and type == "ATOMIC"
-        if expr[idx] is Atom
-            return 1, farPath, true
+        arrPat = grammar[pattern]
+        for pat in arrPat
+            ok = false
+            if pat.type == "ATOM"
+                if subAtomic or expr is Atom
+                    farPath, ok = match(subAtomic ? expr : normalizeSExpr(expr.split("")), pat.pattern, grammar, farPath, curPath, true)
             
-        else
-            return 0, farPath, false
-
-    else if idx < expr.length and type == "ANY"
-        return 1, farPath, true
-
-    else if idx < expr.length and pattern[0] ==  "GROUP"
-        if expr[idx] is not list
-            return 0, farPath, false
-        
-        tmpPath = [...curPath, 0]
-        length, farPath, ok = match(expr[idx], 0, pattern[1], grammar, farPath, tmpPath, noTrackPath)
-            
-        if not ok or length !== expr[idx].length
-            return 0, farPath, false
-        
-        else
-            return 1, farPath, true
-
-    else if type == "ADD"
-        for i = 1 to pattern.length - 1
-            length, farPath, ok = match(expr, idx, pattern[i], grammar, farPath, curPath, noTrackPath)
-            if ok
-                return length, farPath, true
+            else if pat.type == "FLAT" and not subAtomic
+                farPath, ok = match(expr, normalizeSExpr(pat.pattern), grammar, farPath, curPath, subAtomic)
                 
-        return 0, farPath, false
+            else if pat.type == "NORM" and not subAtomic
+                farPath, ok = match(expr, pat.pattern, grammar, farPath, curPath, subAtomic)
+                
+            if ok
+                return farPath, true
+    
+    else if Array.isArray(expr) and Array.isArray(pattern)
+        if expr.length != pattern.length
+            return farPath, false
 
-    else if type == "MUL"
-        length = 0
-        for i = 1 to pattern.length - 1
-            tmpPath = [...curPath.slice(0, curPath.length - 1), idx + length]
-            itemLength, farPath, ok = match(expr, idx + length, pattern[i], grammar, farPath, tmpPath, noTrackPath)
-            length += itemLength
-            if not ok or idx + length > expr.length or itemLength == 0
-                return 0, farPath, false
+        for idx = 0 to expr.length
+            tmpPath = [...curPath, idx]
+            farPath, ok = match(expr[idx], pattern[idx], grammar, farPath, tmpPath, subAtomic)
+            if not ok
+                return farPath, false
+                
+        return farPath, true
+    
+    else if expr is Atom and '"' + expr + '"' == pattern
+        return farPath, true
+    
+    else if pattern == "STRING"
+        if expr is Atom and expr.charAt(0) == '"' and expr.charAt(expr.length - 1) == '"'
+            return farPath, true
+    
+    else if pattern == "IDENTIFIER"
+        if expr is Atom and expr.charAt(0) != '"' and expr.charAt(expr.length - 1) != '"'
+            return farPath, true
+    
+    else if pattern == "ATOMIC"
+        if expr is Atom
+            return farPath, true
+    
+    else if pattern == "ANY"
+        return farPath, true
 
-        return length, farPath, true
+    return farPath, false
 
-    else if type == "STAR"
-        length = 0
-        tmpPath = curPath
-        while true
-            tmpPath = [...curPath.slice(0, curPath.length - 1), idx + length]
-            itemLength, farPath, ok = match(expr, idx + length, pattern[1], grammar, farPath, tmpPath, noTrackPath)
-            length += itemLength
-            if not ok or idx + length >= expr.length or itemLength == 0
-                break
-
-        return length, farPath, true
-
-    else if type == "ATOM"
-        if expr[idx] is Atom
-            return match([expr[idx].split("")], 0, ["GROUP", pattern[1]], grammar, farPath, curPath, true)
-
-        else
-            return 0, farPath, false
-
-    else if type == "ONE"
-        return 0, farPath, true
-
-    else if type == "ZERO"
-        return 0, farPath, false
 
 // Comparing arrays
 
