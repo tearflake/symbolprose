@@ -43,7 +43,7 @@ var Interpreter = (
                 return sProgram;
             }
             
-            let ast = Parser.parse (sSyntax, program);
+            let ast = Parser.parse (program, sSyntax);
             
             if (ast.err) {
                 let msg = SExpr.getPosition (program, ast.path);

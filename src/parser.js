@@ -30,7 +30,7 @@ var Parser = (
             let sSyntax = SExpr.parse (syntax);
             let sGrammar = SExpr.parse (grammar);
             if (sGrammar.err) return sGrammar;
-            let [path, ok] = parseLowLevel (sSyntax, sGrammar);
+            let [path, ok] = parseLowLevel (sGrammar, sSyntax);
 
             return formatOutput (ok, sGrammar, grammar, denormalizeIndexes (path));
         }
@@ -51,89 +51,127 @@ var Parser = (
             return rules
         }
         
-        let parse = function (grammar, sexpr) {
+        let parse = function (sexpr, grammar) {
             let sSexpr = SExpr.parse (sexpr);
             if (sSexpr.err) return sSexpr;
-            let [path, ok] = parseLowLevel (grammar, sSexpr)
+            let [path, ok] = parseLowLevel (sSexpr, grammar)
 
             return formatOutput (ok, sSexpr, sexpr, denormalizeIndexes (path));
         }
         
-        let parseLowLevel = function (grammar, expr) {
+        let parseLowLevel = function (expr, grammar) {
             grammar = makeGrammar (grammar);
             let pattern = "<start>";
 
-            return match (normalizeSExpr (expr), pattern, grammar, [], [], false);
-        }
-
-        let match = function (expr, pattern, grammar, farPath, curPath, subAtomic) {
-            let ok;
-            
-            if (!subAtomic && compareArr(curPath, farPath) > 0) {
-                farPath = curPath;
-            }
-            
-            if (typeof pattern === "string" && grammar[pattern]) {
-                let arrPat = grammar[pattern];
-                for (let i = 0; i < arrPat.length; i++) {
-                    ok = false;
-                    if (arrPat[i].type === "ATOM") {
-                        if (subAtomic || typeof expr ===  "string") {
-                            [farPath, ok] = match(subAtomic ? expr : normalizeSExpr (expr.split ("")), arrPat[i].pattern, grammar, farPath, curPath, true);
-                        }
-                    }
-                    else if (arrPat[i].type === "FLAT" && !subAtomic) {
-                        [farPath, ok] = match(expr, normalizeSExpr(arrPat[i].pattern), grammar, farPath, curPath, subAtomic);
-                    }
-                    else if (arrPat[i].type === "NORM" && !subAtomic) {
-                        [farPath, ok] = match(expr, arrPat[i].pattern, grammar, farPath, curPath, subAtomic);
-                    }
-                    
-                    if (ok) {
-                        return [farPath, true];
-                    }
-                }
-            }
-            else if (Array.isArray (expr) && Array.isArray (pattern)) {
-                if (expr.length !== pattern.length) {
-                    return [farPath, false];
-                }
-
-                for (let idx = 0; idx < expr.length; idx++) {
-                    let tmpPath = [...curPath, idx];
-                    [farPath, ok] = match (expr[idx], pattern[idx], grammar, farPath, tmpPath, subAtomic);
-                    if (!ok) {
-                        return [farPath, false];
-                    }
-                }
-                
-                return [farPath, true];
-            }
-            else if (typeof expr === "string" && '"' + expr + '"' === pattern) {
-                return [farPath, true];
-            }
-            else if (pattern === "STRING") {
-                if (typeof expr === "string" && expr.charAt(0) === '"' && expr.charAt(expr.length - 1) === '"') {
-                    return [farPath, true];
-                }
-            }
-            else if (pattern === "IDENTIFIER") {
-                if (typeof expr === "string" && expr.charAt(0) !== '"' && expr.charAt(expr.length - 1) !== '"') {
-                    return [farPath, true];
-                }
-            }
-            else if (pattern === "ATOMIC") {
-                if (typeof expr === "string") {
-                    return [farPath, true];
-                }
-            }
-            else if (pattern === "ANY") {
-                return [farPath, true];
-            }
-            
-            return [farPath, false];
+            //return match (normalizeSExpr (expr), pattern, grammar, [], [], false);
+            return match (normalizeSExpr (expr), pattern, grammar);
         }
         
+        function match(expr, patt, grammar) {
+            let idx, from;
+            let [mode, ok, stack, farPath] = ["fore", false, [], []];
+            stack.push([-1, expr, patt, [], false]);
+            loop1: while (mode === "fore" || stack.length > 1) {
+                if (mode === "back") {
+                    stack.pop ();
+                }
+                let [idx, expr, patt, curPath, subAtomic] = stack[stack.length - 1];
+                let atomMatch = false;
+                if (typeof patt === "string" && grammar[patt]) {
+                    if (mode === "back") {
+                        if (ok) {
+                            continue loop1;
+                        }
+                        else {
+                            mode = "fore";
+                        }
+                    }
+                    
+                    stack[stack.length - 1][0]++;
+                    idx = stack[stack.length - 1][0];
+                    let rule = grammar[patt];
+                    if (idx < rule.length) {
+                        if (rule[idx].type === "ATOM") {
+                            if (subAtomic || typeof expr === 'string') {
+                                expr = subAtomic ? expr : normalizeSExpr(expr.split(""));
+                                stack.push([-1, expr, rule[idx].pattern, curPath, true]);
+                                continue loop1;
+                            }
+                        }
+                        else if (rule[idx].type == "FLAT" && !subAtomic) {
+                            stack.push([-1, expr, normalizeSExpr(rule[idx].pattern), curPath, subAtomic]);
+                            continue loop1;
+                        }
+                        else if (rule[idx].type == "NORM" && !subAtomic) {
+                            stack.push([-1, expr, rule[idx].pattern, curPath, subAtomic]);
+                            continue loop1;
+                        }
+                    }
+                    
+                    [mode, ok] = ["back", false];
+                    continue loop1;
+                }
+                else if (Array.isArray(expr) && Array.isArray(patt)) {
+                    if (expr.length !== patt.length) {
+                        [mode, ok] = ["back", false];
+                        continue loop1;
+                    }
+                    else {
+                        if (mode === "back")
+                            if (!ok) {
+                                continue loop1;
+                            }
+                            else {
+                                mode = "fore";
+                            }
+
+                        stack[stack.length - 1][0]++;
+                        idx = stack[stack.length - 1][0];
+                        if (idx < expr.length) {
+                            let tmpPath = [...curPath, idx]
+                            if (!subAtomic && compareArr(tmpPath, farPath) > 0) {
+                                farPath = tmpPath;
+                            }
+                            stack.push([-1, expr[idx], patt[idx], tmpPath, subAtomic]);
+                            continue loop1;
+                        }
+                    }
+                    [mode, ok] = ["back", true]
+                    continue loop1;
+                }
+                else if (typeof expr === 'string' && '"' + expr + '"' == patt) {
+                    atomMatch = true;
+                }
+                else if (patt == "STRING") {
+                    if (typeof expr === 'string' && expr.charAt(0) == '"' && expr.charAt(expr.length - 1) == '"') {
+                        atomMatch = true;
+                    }
+                }
+                else if (patt == "IDENTIFIER") {
+                    if (typeof expr === 'string' && expr.charAt(0) != '"' && expr.charAt(expr.length - 1) != '"') {
+                        atomMatch = true;
+                    }
+                }
+                else if (patt == "ATOMIC") {
+                    if (typeof expr === 'string') {
+                        atomMatch = true;
+                    }
+                }
+                else if (patt == "ANY") {
+                    atomMatch = true;
+                }
+                
+                if (atomMatch) {
+                    [mode, ok] = ["back", true];
+                }
+                else {
+                    [mode, ok] = ["back", false];
+                }
+            }
+            
+            return [farPath, ok];
+        }
+
         let compareArr = function (arr1, arr2) {
             for (var i = 0; i < arr1.length; i++) {
                 if (i < arr2.length) {

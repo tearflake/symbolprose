@@ -7,79 +7,114 @@
 Atom        : string                 // atomic expression
 SExpr       : Atom | [SExpr]             // symbolic expression (list form)
 Path        : [Int]                      // index path inside S-expression
-Grammar     : Map<Atom, [Expr]>          // grammar as collection of rules
-Expr        : {                          // pattern
+Grammar     : Map<Atom, [Rule]>          // grammar as collection of rules
+Rule        : {                          // rule
     type: "NORM" | "FLAT" | "ATOM",
-    pattern: SExpr
+    patttern: SExpr
 }
 
 // Core Parsing Engine
 
 function parse(expr: SExpr, grammar: Grammar): SExpr | Error
-    pattern = "<start>"
-    path, ok = match(normalizeSExpr(expr), pattern, grammar, [], [], false)
+    patt = "<start>"
+    path, ok = match(normalizeSExpr(expr), patt, grammar)
     if ok
         return expr
         
     else
         return Error("Parse failed", denormalizeIndexes(path))
 
-
 // Matching Function
 
-function match(expr: SExpr, pattern: SExpr, grammar: Grammar, farPath: Path, curPath: Path, subAtomic: Bool): (Path, Bool)
-    if not subAtomic and compareArr(curPath, farPath) > 0
-        farPath = curPath
-    
-    if pattern is Atom and grammar contains pattern
-        arrPat = grammar[pattern]
-        for pat in arrPat
-            ok = false
-            if pat.type == "ATOM"
-                if subAtomic or expr is Atom
-                    farPath, ok = match(subAtomic ? expr : normalizeSExpr(expr.split("")), pat.pattern, grammar, farPath, curPath, true)
+function match(expr: SExpr, patt: SExpr, grammar: Grammar): (Path, Bool)
+    [mode, ok, stack, farPath] = ["fore", false, [], []]
+    stack.push([-1, expr, patt, [], false])
+    loop1: while (mode == "fore" or stack.length > 1)
+        if mode == "back"
+            stack.pop()
             
-            else if pat.type == "FLAT" and not subAtomic
-                farPath, ok = match(expr, normalizeSExpr(pat.pattern), grammar, farPath, curPath, subAtomic)
+        [_, expr, patt, curPath, subAtomic] = stack.top()
+        atomMatch = false
+        if patt is Atom and grammar contains patt
+            if mode == "back"
+                if ok
+                    continue loop1
                 
-            else if pat.type == "NORM" and not subAtomic
-                farPath, ok = match(expr, pat.pattern, grammar, farPath, curPath, subAtomic)
+                else
+                    mode = "fore"
+            
+            stack.top()[0]++
+            idx = stack.top()[0]
+            rule = grammar[patt]
+            if idx < rule.length
+                if rule[idx].type == "ATOM"
+                    if subAtomic or expr is Atom
+                        expr = subAtomic ? expr : normalizeSExpr(expr.split(""))
+                        stack.push([-1, expr, rule[idx].pattern, curPath, true])
+                        continue loop1
+                        
+                else if rule[idx].type == "FLAT" and not subAtomic
+                    stack.push([idx, expr, normalizeSExpr(rule[idx].pattern), curPath, subAtomic])
+                    continue loop1
+                    
+                else if rule[idx].type == "NORM" and not subAtomic
+                    stack.push([idx, expr, rule[idx].pattern, curPath, subAtomic])
+                    continue loop1
+            
+            [mode, ok] = ["back", false]
+            continue loop1
+
+        else if Array.isArray(expr) and Array.isArray(patt)
+            if expr.length != patt.length
+                [mode, ok] = ["back", false]
+                continue loop1
+            
+            else
+                if mode == "back"
+                    if not ok
+                        continue loop1
+                    
+                    else
+                        mode = "fore"
+
+                stack.top()[0]++
+                idx = stack.top()[0]
+                if idx < expr.length
+                    tmpPath = [...curPath, idx]
+                    if not subAtomic and compareArr(tmpPath, farPath) > 0
+                        farPath = tmpPath
                 
-            if ok
-                return farPath, true
-    
-    else if Array.isArray(expr) and Array.isArray(pattern)
-        if expr.length != pattern.length
-            return farPath, false
+                    stack.push([idx, expr[idx], patt[idx], tmpPath, subAtomic])
+                    continue loop1
+                    
+            [mode, ok] = ["back", true]
+            continue loop1
+        
+        else if expr is Atom and '"' + expr + '"' == patt
+            atomMatch = true
+        
+        else if patt == "STRING"
+            if expr is Atom and expr.charAt(0) == '"' and expr.charAt(expr.length - 1) == '"'
+                atomMatch = true
+        
+        else if patt == "IDENTIFIER"
+            if expr is Atom and expr.charAt(0) != '"' and expr.charAt(expr.length - 1) != '"'
+                atomMatch = true
+        
+        else if patt == "ATOMIC"
+            if expr is Atom
+                atomMatch = true
+        
+        else if patt == "ANY"
+            atomMatch = true
+        
+        if atomMatch
+            [mode, ok] = ["back", true]
 
-        for idx = 0 to expr.length
-            tmpPath = [...curPath, idx]
-            farPath, ok = match(expr[idx], pattern[idx], grammar, farPath, tmpPath, subAtomic)
-            if not ok
-                return farPath, false
-                
-        return farPath, true
-    
-    else if expr is Atom and '"' + expr + '"' == pattern
-        return farPath, true
-    
-    else if pattern == "STRING"
-        if expr is Atom and expr.charAt(0) == '"' and expr.charAt(expr.length - 1) == '"'
-            return farPath, true
-    
-    else if pattern == "IDENTIFIER"
-        if expr is Atom and expr.charAt(0) != '"' and expr.charAt(expr.length - 1) != '"'
-            return farPath, true
-    
-    else if pattern == "ATOMIC"
-        if expr is Atom
-            return farPath, true
-    
-    else if pattern == "ANY"
-        return farPath, true
+        else
+            [mode, ok] = ["back", false]
 
-    return farPath, false
-
+    return [farPath, ok]
 
 // Comparing arrays
 
