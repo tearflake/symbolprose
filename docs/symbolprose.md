@@ -68,11 +68,11 @@ In Symbolprose, graphs represent programs. Here, special nodes `BEGIN` and `END`
 
 Edges are places where actual execution of instructions are done. Each edge `EDGE` defines `SOURCE` and `TARGET` nodes, while the edge `INSTR` section holds the instructions to execute in sequence. There are two types of instructions: `ASGN` and `TEST`.
 
-`ASGN` instructions take two parameters: a variable name and a S-expression value that is going to be assigned to the variable. The variables are created when they are used for the first time. Before assignment of S-expressions, they are evaluated, substituting contained variables for their values. `ASGN` instructions always succeed and the execution flow continues to the next instruction in the sequence.
+`ASGN` instructions take two parameters: a variable name and a S-expression value that is going to be assigned to the variable. The variables are created when they are used for the first time. Before assignment of S-expressions to variables, S-expressions are evaluated, substituting contained variables for their values. `ASGN` instructions always succeed and the execution flow continues to the next instruction in the sequence.
 
 `TEST` instructions also take two parameters: expressions which are about to be compared for being equal. Also using the variable substitution, if the parameters are equal to the last consisting atom, the execution flow continues to the next instruction in the sequence. If the parameters are not equal, the branching happens, and the next edge from the same source node is selected for execution. There is no backtracking which cancels the `ASGN` effects from the past instruction sequences. Instead, the control flow is just switched to the beginning of the next edge sequence. When all the edges from the same source node fail to execute, a runtime error is triggered.
 
-Finally, when all the instructions from the current `INSTR` sequence succeed, the program control flow continues to the `TARGET` node, trying to execute further edges that branch from the current node. We can consider each instruction sequence labeled by the `SOURCE` section name, while the `TARGET` section name serves as a kind of "goto" command mechanism. Naturally, it is possible to form loops targeting the past nodes, but we have to carefully set up `TEST` conditions to exit if we don't want an infinite loop to appear.
+Finally, when all the instructions from the current `INSTR` sequence succeed, the program control flow continues to the `TARGET` node, trying to execute further edges that branch from the `TARGET` node. We can consider each instruction sequence labeled by the `SOURCE` section name, while the `TARGET` section name serves as a kind of "goto" command mechanism to another instruction sequence. Naturally, it is possible to form loops targeting the past nodes, but we have to carefully set up `TEST` conditions to branch out if we don't want an infinite loop to appear.
 
 ### internal variables
 
@@ -80,7 +80,7 @@ There are two predefined variables in each graph: `PARAMS` and `RESULT`. When ex
 
 ### relating programs in a structure
 
-Graphs can be nested using `COMPUTE` sections, syntactically recursing the graph structure, providing a structure and isolation method to our programs. `COMPUTE` section defines its name and a graph. Here, graphs behave like sub-programs with their own input, output, and variable environment. Graphs defined within the nested `COMPUTE` sections, are executed using a special `RUN` calling instruction which takes two parameters: a graph name and input to the graph. `RUN` calling instructions may be placed wherever program variables may appear, thus computing their results from the passed parameters. Only parents and their siblings graphs are visible to a specific `RUN` instruction.
+Graphs can be nested using `COMPUTE` sections, syntactically recursing the graph structure, providing a structure and isolation method to our programs. `COMPUTE` section defines its name and a graph. Here, graphs behave like sub-programs with their own input, output, and variable environment. Graphs defined within the nested `COMPUTE` sections, are executed using a special `RUN` calling instruction which takes two parameters: a graph name and input to the graph. `RUN` calling instruction may be placed wherever program variables may appear, thus computing their results from the passed parameters. Only parents and their sibling graphs are visible to a specific `RUN` instruction.
 
 ## 3. examples
 
@@ -201,8 +201,9 @@ This example returns `true` if the first parameter is contained within second pa
     (EDGE
         (SOURCE BEGIN)
         (INSTR
-            (ASGN element (RUN stdlib (nth "0" PARAMS)))
-            (ASGN list    (RUN stdlib (nth "1" PARAMS))))
+            (ASGN element (RUN stdlib ("nth" "0" PARAMS)))
+            (ASGN list    (RUN stdlib ("nth" "1" PARAMS))))
+            
         (TARGET loop))
     
     // Loop condition: if input is ()
@@ -211,20 +212,22 @@ This example returns `true` if the first parameter is contained within second pa
         (INSTR
             (TEST list ())
             (ASGN RESULT "false"))
+            
         (TARGET END)) // done
     
     // Loop condition: if element is found
     (EDGE
         (SOURCE loop)
         (INSTR
-            (TEST element (RUN stdlib (first list)))
+            (TEST element (RUN stdlib ("first" list)))
             (ASGN RESULT "true"))
+            
         (TARGET END)) // done
     
     // Fallback: process next element in list
     (EDGE
         (SOURCE loop)
-        (INSTR (ASGN list (RUN stdlib (rest list))))
+        (INSTR (ASGN list (RUN stdlib ("rest" list))))
         (TARGET loop))) // Continue looping
 ```
 
@@ -241,6 +244,7 @@ This program reverses a list:
         (INSTR
             (ASGN input PARAMS)
             (ASGN acc ()))
+            
         (TARGET loop))
 
     // Loop condition: if input is ()
@@ -253,10 +257,11 @@ This program reverses a list:
     (EDGE
         (SOURCE loop)
         (INSTR
-            (ASGN head (RUN stdlib (first input)))
-            (ASGN tail (RUN stdlib (rest input)))
-            (ASGN acc (RUN stdlib (prepend head acc)))
+            (ASGN head (RUN stdlib ("first" input)))
+            (ASGN tail (RUN stdlib ("rest" input)))
+            (ASGN acc (RUN stdlib ("prepend" head acc)))
             (ASGN input tail))
+            
         (TARGET loop)) // Continue looping
 
     // Final step: store reversed RESULT
@@ -282,6 +287,7 @@ Recursive factorial function - on input `5`, output is `120`:
                 (INSTR
                     (TEST PARAMS "0")
                     (ASGN RESULT "1"))
+                    
                 (TARGET END))
 
             // Recursive case
@@ -289,9 +295,10 @@ Recursive factorial function - on input `5`, output is `120`:
                 (SOURCE BEGIN)
                 (INSTR
                     (ASGN n PARAMS)
-                    (ASGN n1 (RUN stdlib (sub n "1")))
+                    (ASGN n1 (RUN stdlib ("sub" n "1")))
                     (ASGN rec (RUN fact n1))
-                    (ASGN RESULT (RUN stdlib (mul n rec))))
+                    (ASGN RESULT (RUN stdlib ("mul" n rec))))
+                    
                 (TARGET END))))
 
     // Top-level call
@@ -317,6 +324,7 @@ Returns n-th fibonacci numbers:
                 (INSTR
                     (TEST PARAMS "0")
                     (ASGN RESULT "0"))
+                    
                 (TARGET END))
 
             // fib(1) -> 1
@@ -325,6 +333,7 @@ Returns n-th fibonacci numbers:
                 (INSTR
                     (TEST PARAMS "1")
                     (ASGN RESULT "1"))
+                    
                 (TARGET END))
 
             // fib(n) -> fib(n - 1) + fib(n - 2)
@@ -334,6 +343,7 @@ Returns n-th fibonacci numbers:
                     (ASGN n1 "0")
                     (ASGN n2 "1")
                     (ASGN i "1"))
+                    
                 (TARGET loop))
 
             (EDGE
@@ -341,15 +351,17 @@ Returns n-th fibonacci numbers:
                 (INSTR
                     (TEST i PARAMS)
                     (ASGN RESULT n3))
+                    
                 (TARGET END))
 
             (EDGE
                 (SOURCE loop)
                 (INSTR
-                    (ASGN n3 (RUN stdlib (add n1 n2)))
+                    (ASGN n3 (RUN stdlib ("add" n1 n2)))
                     (ASGN n1 n2)
                     (ASGN n2 n3)
-                    (ASGN i (RUN stdlib (add i "1"))))
+                    (ASGN i (RUN stdlib ("add" i "1"))))
+                    
                 (TARGET loop))))
 
     // Top-level call

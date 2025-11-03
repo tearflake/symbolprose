@@ -208,8 +208,11 @@ var Interpreter = (
             
             if (expr[1] === "stdlib") {
                 let fnName = expr[2][0];
-                if (BUILTINS[fnName]) {
-                    return BUILTINS[fnName](["RUN", "stdlib", evalExpr (expr[2], graph, env)]);
+                if (fnName.charAt (0) === '"' && fnName.charAt (fnName.length - 1) === '"') {
+                    fnName = fnName.substring (1, fnName.length - 1);
+                    if (BUILTINS[fnName]) {
+                        return BUILTINS[fnName](["RUN", "stdlib", evalExpr (expr[2], graph, env)]);
+                    }
                 }
                 else {
                     return {err: `Undefined stdlib function ${fnName}`};

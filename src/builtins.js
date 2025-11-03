@@ -19,6 +19,13 @@ const BUILTINS = {
         return expr;
     },
 
+  // (isatom elem) -> bool
+  isatom(args) {
+    if (args[2].length !== 2) return {err: "Parameters not valid"};
+    const elem = args[2][1];
+    return (Array.isArray(elem)) ? '"false"' : '"true"';
+  },
+
   /*
   MATH FUNCTIONS
   */
@@ -78,6 +85,13 @@ const BUILTINS = {
     return this.quote((Math.log(param)).toString());
   },
   
+  // (leq elem elem) -> bool
+  leq(args) {
+    if (args[2].length !== 3) return {err: "Parameters not valid"};
+    const elem1 = Number(this.unquote(args[2][1]));
+    const elem2 = Number(this.unquote(args[2][2]));
+    return (elem1 <= elem2) ? '"true"' : '"false"';
+  },
   
   /*
   STRING FUNCTIONS
@@ -123,6 +137,22 @@ const BUILTINS = {
     return elem1.substring(elem2, elem3);
   },
 
+  
+  // (strcmp elem elem) -> num
+  strcmp(args) {
+    if (args[2].length !== 3) return {err: "Parameters not valid"};
+    const elem1 = args[2][1];
+    const elem2 = args[2][2];
+    if (typeof elem1 !== "string") return {err: "Parameters not valid"};
+    if (typeof elem2 !== "string") return {err: "Parameters not valid"};
+    if (elem1 < elem2)
+      return '"-1"';
+    else if (elem1 > elem2)
+      return '"1"';
+    else
+      return '"0"';
+  },
+
   /*
   LIST FUNCTIONS
   */
@@ -133,6 +163,7 @@ const BUILTINS = {
     const elem = args[2][1];
     const lst = args[2][2];
     if (!Array.isArray(lst)) return {err: "Parameters not valid"};
+    if (lst.length === 0) return {err: "List is empty"};
     if (lst[this.unquote(elem)]) return lst[this.unquote(elem)];
     return [];
   },
@@ -170,6 +201,7 @@ const BUILTINS = {
     if (args[2].length !== 2) return {err: "Parameters not valid"};
     const lst = args[2][1];
     if (!Array.isArray(lst)) return {err: "Parameters not valid"};
+    if (lst.length === 0) return {err: "List is empty"};
     return lst[0];
   },
   
@@ -178,6 +210,7 @@ const BUILTINS = {
     if (args[2].length !== 2) return {err: "Parameters not valid"};
     const lst = args[2][1];
     if (!Array.isArray(lst)) return {err: "Parameters not valid"};
+    if (lst.length === 0) return {err: "List is empty"};
     return lst.slice(1);
   },
   
