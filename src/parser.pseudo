@@ -9,7 +9,6 @@ SExpr       : Atom | [SExpr]             // symbolic expression (list form)
 Path        : [Int]                      // index path inside S-expression
 Grammar     : Map<Atom, [Rule]>          // grammar as collection of rules
 Rule        : {                          // rule
-    type: "NORM" | "FLAT" | "ATOM",
     patttern: SExpr
 }
 
@@ -29,12 +28,15 @@ function parse(expr: SExpr, grammar: Grammar): SExpr | Error
 function match(expr: SExpr, patt: SExpr, grammar: Grammar): (Path, Bool)
     [mode, ok, stack, farPath] = ["fore", false, [], []]
     stack.push([-1, expr, patt, [], false])
-    loop1: while (mode == "fore" or stack.length > 1)
+    loop1: while mode == "fore" or stack.length > 1
         if mode == "back"
             stack.pop()
             
         [_, expr, patt, curPath, subAtomic] = stack.top()
         atomMatch = false
+        if patt is Atom enclosed within quotes
+            patt = normalizeAtom (patt.substring(1, patt.length - 1))
+
         if patt is Atom and grammar contains patt
             if mode == "back"
                 if ok
@@ -47,19 +49,8 @@ function match(expr: SExpr, patt: SExpr, grammar: Grammar): (Path, Bool)
             idx = stack.top()[0]
             rule = grammar[patt]
             if idx < rule.length
-                if rule[idx].type == "ATOM"
-                    if subAtomic or expr is Atom
-                        expr = subAtomic ? expr : normalizeSExpr(expr.split(""))
-                        stack.push([-1, expr, rule[idx].pattern, curPath, true])
-                        continue loop1
-                        
-                else if rule[idx].type == "FLAT" and not subAtomic
-                    stack.push([idx, expr, normalizeSExpr(rule[idx].pattern), curPath, subAtomic])
-                    continue loop1
-                    
-                else if rule[idx].type == "NORM" and not subAtomic
-                    stack.push([idx, expr, rule[idx].pattern, curPath, subAtomic])
-                    continue loop1
+                stack.push([-1, expr, rule[idx].pattern, curPath, subAtomic])
+                continue loop1
             
             [mode, ok] = ["back", false]
             continue loop1
@@ -83,23 +74,18 @@ function match(expr: SExpr, patt: SExpr, grammar: Grammar): (Path, Bool)
                     tmpPath = [...curPath, idx]
                     if not subAtomic and compareArr(tmpPath, farPath) > 0
                         farPath = tmpPath
-                
+                    
+                    if expr[idx] is array and expr[idx][0] == "ATOM"
+                        subAtomic = true;
+                    
                     stack.push([idx, expr[idx], patt[idx], tmpPath, subAtomic])
                     continue loop1
                     
             [mode, ok] = ["back", true]
             continue loop1
         
-        else if expr is Atom and '"' + expr + '"' == patt
+        else if expr is Atom and expr == patt
             atomMatch = true
-        
-        else if patt == "STRING"
-            if expr is Atom and expr.charAt(0) == '"' and expr.charAt(expr.length - 1) == '"'
-                atomMatch = true
-        
-        else if patt == "IDENTIFIER"
-            if expr is Atom and expr.charAt(0) != '"' and expr.charAt(expr.length - 1) != '"'
-                atomMatch = true
         
         else if patt == "ATOMIC"
             if expr is Atom
@@ -116,9 +102,7 @@ function match(expr: SExpr, patt: SExpr, grammar: Grammar): (Path, Bool)
 
     return [farPath, ok]
 
-// Comparing arrays
-
-compareArr(arr1, arr2) {
+function compareArr(arr1: [], arr2: []): Integer
     for i = 0 to arr1.length - 1
         if i < arr2.length
             if arr1[i] < arr2[i]
@@ -137,5 +121,52 @@ compareArr(arr1, arr2) {
         return 1
     
     else
-        return 0;
+        return 0
+
+function normalizeSExpr(expr: SExpr): SExpr
+    stack = []
+    car = expr
+    cdr = []
+    stack.push({car: expr})
+    while stack.length > 0
+        item = stack.pop()
+        if item.car != undefined
+            car = item.car;
+            if car is array
+                stack.push({cdr: cdr})
+                cdr = [];
+                for c in car
+                    stack.push({car: c})
+            
+            else
+                cdr = ["LIST", normalizeAtom(car), cdr]
+        
+        else
+            car = cdr
+            cdr = ["LIST", car, item.cdr]
+    
+    return (car is string) ? normalizeAtom(car) : car
+
+function normalizeAtom(atom: String): SExpr
+    cdr = [];
+    for i = atom.length - 1 to 0 step -1
+        cdr = ["ATOM", atom.charAt(i), cdr]
+    
+    return cdr
+
+function denormalizeIndexes(nm: []): []
+    dnm = []
+    idx = 0
+    for n in nm
+        if n === 1
+            dnm.push(idx)
+            idx = 0
+        
+        else if n === 2
+            idx++;
+    
+    if idx > 0
+        dnm.push(idx)
+    
+    return dnm
 

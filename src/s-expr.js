@@ -180,10 +180,7 @@ var SExpr = (
                 list.push(parseExpr());
               }
               if (!tokens[pos])
-                return {
-                  err: "Unclosed parenthesis",
-                  pos: {x: tok.col - 1, y: tok.line - 1}
-                };
+                return {err: "Unclosed parenthesis", pos: {x: tok.col - 1, y: tok.line - 1}};
               pos++; // consume RPAREN
               return list;
             }

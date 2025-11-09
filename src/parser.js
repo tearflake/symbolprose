@@ -15,18 +15,24 @@ var Parser = (
 
         let parseGrammar = function (grammar) {
             let syntax = `
-                (RULES
-                    (NORM <start> ("RULES" <rules>))
+                (GRAMMAR
+                    (RULE <start> (LIST "GRAMMAR" <rules>))
 
-                    (NORM <rules> (<rule> <rules>))
-                    (NORM <rules> (<rule> ()))
+                    (RULE <rules> (LIST <rule> <rules>))
+                    (RULE <rules> (LIST <rule> ()))
 
-                    (FLAT <rule> ("FLAT" IDENTIFIER ANY))
-                    (FLAT <rule> ("NORM" IDENTIFIER ANY))
-                    (FLAT <rule> ("ATOM" IDENTIFIER ANY))
-                )
+                    (RULE <rule> (LIST "RULE" (LIST ATOMIC (LIST <metaExp> ()))))
+
+                    (RULE <metaExp> (LIST "LIST" (LIST <metaExp> (LIST <metaExp> ()))))
+                    (RULE <metaExp> <metaAtom>)
+                         
+                    (RULE <metaAtom> (LIST "ATOM" (LIST ATOMIC (LIST <metaAtom> ()))))
+                    (RULE <metaAtom> <atomic>)
+
+                    (RULE <atomic> ATOMIC)
+                    (RULE <atomic> ()))
             `
-
+            
             let sSyntax = SExpr.parse (syntax);
             let sGrammar = SExpr.parse (grammar);
             if (sGrammar.err) return sGrammar;
@@ -38,7 +44,7 @@ var Parser = (
         let makeGrammar = function (sexpr) {
             let rules = [];
             for (let i = 1; i < sexpr.length; i++) {
-                let ruleType = sexpr[i][0]
+                let ruleType = sexpr[i][0];
                 let ruleName = sexpr[i][1];
                 let ruleBody = sexpr[i][2];
                 if (!rules[ruleName]) {
@@ -61,10 +67,9 @@ var Parser = (
         
         let parseLowLevel = function (expr, grammar) {
             grammar = makeGrammar (grammar);
-            let pattern = "<start>";
+            let patt = "<start>";
 
-            //return match (normalizeSExpr (expr), pattern, grammar, [], [], false);
-            return match (normalizeSExpr (expr), pattern, grammar);
+            return match (normalizeSExpr (expr), patt, grammar);
         }
         
         function match(expr, patt, grammar) {
@@ -75,8 +80,13 @@ var Parser = (
                 if (mode === "back") {
                     stack.pop ();
                 }
+                
                 let [idx, expr, patt, curPath, subAtomic] = stack[stack.length - 1];
                 let atomMatch = false;
+                if (typeof patt === "string" && patt.charAt (0) === '"' && patt.charAt (patt.length - 1) === '"') {
+                    patt = normalizeAtom (patt.substring(1, patt.length - 1));
+                }
+                
                 if (typeof patt === "string" && grammar[patt]) {
                     if (mode === "back") {
                         if (ok) {
@@ -91,21 +101,8 @@ var Parser = (
                     idx = stack[stack.length - 1][0];
                     let rule = grammar[patt];
                     if (idx < rule.length) {
-                        if (rule[idx].type === "ATOM") {
-                            if (subAtomic || typeof expr === 'string') {
-                                expr = subAtomic ? expr : normalizeSExpr(expr.split(""));
-                                stack.push([-1, expr, rule[idx].pattern, curPath, true]);
-                                continue loop1;
-                            }
-                        }
-                        else if (rule[idx].type == "FLAT" && !subAtomic) {
-                            stack.push([-1, expr, normalizeSExpr(rule[idx].pattern), curPath, subAtomic]);
-                            continue loop1;
-                        }
-                        else if (rule[idx].type == "NORM" && !subAtomic) {
-                            stack.push([-1, expr, rule[idx].pattern, curPath, subAtomic]);
-                            continue loop1;
-                        }
+                        stack.push([-1, expr, rule[idx].pattern, curPath, subAtomic]);
+                        continue loop1;
                     }
                     
                     [mode, ok] = ["back", false];
@@ -132,6 +129,11 @@ var Parser = (
                             if (!subAtomic && compareArr(tmpPath, farPath) > 0) {
                                 farPath = tmpPath;
                             }
+                            
+                            if (Array.isArray(expr[idx]) && expr[idx][0] === 'ATOM') {
+                                subAtomic = true;
+                            }
+
                             stack.push([-1, expr[idx], patt[idx], tmpPath, subAtomic]);
                             continue loop1;
                         }
@@ -139,21 +141,11 @@ var Parser = (
                     [mode, ok] = ["back", true]
                     continue loop1;
                 }
-                else if (typeof expr === 'string' && '"' + expr + '"' == patt) {
+                else if (typeof expr === 'string' && expr == patt) {
                     atomMatch = true;
                 }
-                else if (patt == "STRING") {
-                    if (typeof expr === 'string' && expr.charAt(0) == '"' && expr.charAt(expr.length - 1) == '"') {
-                        atomMatch = true;
-                    }
-                }
-                else if (patt == "IDENTIFIER") {
-                    if (typeof expr === 'string' && expr.charAt(0) != '"' && expr.charAt(expr.length - 1) != '"') {
-                        atomMatch = true;
-                    }
-                }
                 else if (patt == "ATOMIC") {
-                    if (typeof expr === 'string') {
+                    if (Array.isArray(expr) && expr[0] === 'ATOM') {
                         atomMatch = true;
                     }
                 }
@@ -198,15 +190,52 @@ var Parser = (
             }
         }
 
-        var denormalizeIndexes = function (nm) {
+        let normalizeSExpr = function (expr) {
+            var stack = [], item;
+            var car = expr, cdr = [];
+            stack.push ({car: expr});
+            while (stack.length > 0) {
+                item = stack.pop ();
+                if (item.car !== undefined) {
+                    car = item.car;
+                    if (Array.isArray (car)) {
+                        stack.push ({cdr: cdr});
+                        cdr = [];
+                        for (var i = 0;  i < car.length; i++) {
+                            stack.push ({car: car[i]});
+                        }
+                    }
+                    else {
+                        cdr = ["LIST", normalizeAtom (car), cdr];
+                    }
+                }
+                else {
+                    car = cdr;
+                    cdr = ["LIST", car, item.cdr];
+                }
+            }
+            
+            return (typeof car === 'string') ? normalizeAtom (car) : car;
+        };
+        
+        let normalizeAtom = function (atom) {
+            let cdr = [];
+            for (let i = atom.length - 1; i >= 0; i--) {
+                cdr = ["ATOM", atom.charAt (i), cdr];
+            }
+            
+            return cdr;
+        }
+
+        let denormalizeIndexes = function (nm) {
             var dnm = [];
             var idx = 0;
             for (var i = 0; i < nm.length; i++) {
-                if (nm[i] === 0) {
+                if (nm[i] === 1) {
                     dnm.push (idx);
                     idx = 0;
                 }
-                else {
+                else if (nm[i] === 2) {
                     idx++;
                 }
             }
@@ -218,34 +247,6 @@ var Parser = (
             return dnm;
         };
 
-        var normalizeSExpr = function (expr) {
-            var stack = [], item;
-            var car = expr, cdr = [];
-            stack.push ({car: expr});
-            while (stack.length > 0) {
-                item = stack.pop ();
-                if (item.car !== undefined) {
-                    car = item.car;
-                    if (Array.isArray (car)) {
-                        stack.push ({cdr: cdr})
-                        cdr = [];
-                        for (var i = 0;  i < car.length; i++) {
-                            stack.push ({car: car[i]})
-                        }
-                    }
-                    else {
-                        cdr = [car, cdr];
-                    }
-                }
-                else {
-                    car = cdr;
-                    cdr = [car, item.cdr];
-                }
-            }
-            
-            return car;
-        };
-        
         let formatOutput = function (ok, sexpr, text, path) {
             if (ok) {
                 return sexpr;
@@ -263,7 +264,7 @@ var Parser = (
     }) ()
 );
 
-var isNode = new Function ("try {return this===global;}catch(e){return false;}");
+var isNode = new Function ("try{return this===global;}catch(e){return false;}");
 
 if (isNode ()) {
     // begin of Node.js support

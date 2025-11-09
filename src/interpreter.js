@@ -15,25 +15,40 @@ var Interpreter = (
         
         function parse (program) {
             let syntax = `
-                (RULES
-                    (FLAT <start> <graph>)
+                (GRAMMAR
+                    (RULE <start> <graph>)
 
-                    (NORM <graph> ("GRAPH" <elements>))
+                    (RULE <graph> (LIST "GRAPH" <elements>))
                     
-                    (NORM <elements> (<element> <elements>))
-                    (NORM <elements> (<element> ()))
+                    (RULE <elements> (LIST <element> <elements>))
+                    (RULE <elements> (LIST <element> ()))
                     
-                    (FLAT <element> ("EDGE" ("SOURCE" IDENTIFIER) <instr> ("TARGET" IDENTIFIER)))
-                    (FLAT <element> ("EDGE" ("SOURCE" IDENTIFIER) ("TARGET" IDENTIFIER)))
-                    (FLAT <element> ("COMPUTE" ("NAME" IDENTIFIER) <graph>))
+                    (RULE <element>
+                        (LIST "EDGE"
+                            (LIST (LIST "SOURCE" (LIST ATOMIC ()))
+                                (LIST <instr>
+                                    (LIST (LIST "TARGET" (LIST ATOMIC ()))
+                                        ())))))
+                                        
+                    (RULE <element>
+                        (LIST "EDGE"
+                            (LIST (LIST "SOURCE" (LIST ATOMIC ()))
+                                (LIST (LIST "TARGET" (LIST ATOMIC ()))
+                                    ()))))
+                                    
+                    (RULE <element>
+                        (LIST "COMPUTE"
+                            (LIST (LIST "NAME" (LIST ATOMIC ()))
+                                (LIST <graph>
+                                    ()))))
                     
-                    (NORM <instr> ("INSTR" <instructions>))
+                    (RULE <instr> (LIST "INSTR" <instructions>))
                     
-                    (NORM <instructions> (<instruction> <instructions>))
-                    (NORM <instructions> (<instruction> ()))
+                    (RULE <instructions> (LIST <instruction> <instructions>))
+                    (RULE <instructions> (LIST <instruction> ()))
                     
-                    (FLAT <instruction> ("TEST" ANY ANY))
-                    (FLAT <instruction> ("ASGN" IDENTIFIER ANY)))
+                    (RULE <instruction> (LIST "TEST" (LIST ANY (LIST ANY()))))
+                    (RULE <instruction> (LIST "ASGN" (LIST ATOMIC (LIST ANY ())))))
             `;
             
             let sSyntax = SExpr.parse (syntax);
