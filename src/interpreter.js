@@ -172,7 +172,7 @@ var Interpreter = (
                             }
                         }
                         
-                        fallback.push ([node, i]);
+                        fallback.push ([node, i + 1]);
                         node = edge.target;
                         idx = 0;
                         continue loop1;
