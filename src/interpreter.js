@@ -16,39 +16,39 @@ var Interpreter = (
         function parse (program) {
             let syntax = `
                 (GRAMMAR
-                    (RULE <start> <graph>)
+                    (RULE START graph)
 
-                    (RULE <graph> (LIST "GRAPH" <elements>))
+                    (RULE graph (LIST "GRAPH" elements))
                     
-                    (RULE <elements> (LIST <element> <elements>))
-                    (RULE <elements> (LIST <element> ()))
+                    (RULE elements (LIST element elements))
+                    (RULE elements (LIST element ()))
                     
-                    (RULE <element>
+                    (RULE element
                         (LIST "EDGE"
                             (LIST (LIST "SOURCE" (LIST ATOMIC ()))
-                                (LIST <instr>
+                                (LIST instr
                                     (LIST (LIST "TARGET" (LIST ATOMIC ()))
                                         ())))))
                                         
-                    (RULE <element>
+                    (RULE element
                         (LIST "EDGE"
                             (LIST (LIST "SOURCE" (LIST ATOMIC ()))
                                 (LIST (LIST "TARGET" (LIST ATOMIC ()))
                                     ()))))
                                     
-                    (RULE <element>
+                    (RULE element
                         (LIST "COMPUTE"
                             (LIST (LIST "NAME" (LIST ATOMIC ()))
-                                (LIST <graph>
+                                (LIST graph
                                     ()))))
                     
-                    (RULE <instr> (LIST "INSTR" <instructions>))
+                    (RULE instr (LIST "INSTR" instructions))
                     
-                    (RULE <instructions> (LIST <instruction> <instructions>))
-                    (RULE <instructions> (LIST <instruction> ()))
+                    (RULE instructions (LIST instruction instructions))
+                    (RULE instructions (LIST instruction ()))
                     
-                    (RULE <instruction> (LIST "TEST" (LIST ANY (LIST ANY()))))
-                    (RULE <instruction> (LIST "ASGN" (LIST ATOMIC (LIST ANY ())))))
+                    (RULE instruction (LIST "TEST" (LIST ANY (LIST ANY ()))))
+                    (RULE instruction (LIST "ASGN" (LIST ATOMIC (LIST ANY ())))))
             `;
             
             let sSyntax = SExpr.parse (syntax);
@@ -130,17 +130,16 @@ var Interpreter = (
         function runLowLevel (graph, params) {
             const env = Object.create(null);
             env["PARAMS"] = params;
-            env["RESULT"] = "NIL";
+            env["RESULT"] = [];
             
-            let node = "BEGIN"; 
+            let node = "BEGIN";
+            let idx = 0;
             let guard = 0, GUARD_LIMIT = 100000;
             try {
+                let fallback = [];
                 loop1: while (node !== "END") {
                     if (guard++ > GUARD_LIMIT) {
                         throw new Error ("Guard limit exceeded");
-                    }
-                    else if (Array.isArray (node)) {
-                        throw new Error (`Error - node can not be a list: ${node}`);
                     }
                     
                     let edges = graph.item[node];
@@ -148,7 +147,7 @@ var Interpreter = (
                         throw new Error (`Uknown node: ${node}`);
                     }
 
-                    loop2: for (let i = 0; i < edges.length; i++) {
+                    loop2: for (let i = idx; i < edges.length; i++) {
                         let edge = edges[i];
                         for (let j = 0; j < edge.instructions.length; j++) {
                             let instruction = edge.instructions[j];
@@ -168,17 +167,22 @@ var Interpreter = (
                                 if (b.err)
                                     return b;
                                     
-                                if (!deepEqual (a, b)) {
+                                if (!deepEqual (a, b))
                                     continue loop2;
-                                }
                             }
                         }
                         
+                        fallback.push ([node, i]);
                         node = edge.target;
+                        idx = 0;
                         continue loop1;
                     }
                     
-                    return {err: "Runtime error: no more fallback edges from node: " + node};
+                    if (fallback.length > 0)
+                        [node, idx] = fallback.pop ();
+
+                    else
+                        throw new Error ("Runtime error - no more fallback edges");
                 }
 
                 return env["RESULT"];
@@ -235,11 +239,6 @@ var Interpreter = (
             }
 
             return {err: `Undefined function ${expr[1]}`};
-        }
-        
-        function deepClone(v) {
-            if (Array.isArray (v)) return v.map (deepClone);
-            return v;
         }
 
         function deepEqual(a, b) {

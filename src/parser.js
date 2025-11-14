@@ -16,21 +16,44 @@ var Parser = (
         let parseGrammar = function (grammar) {
             let syntax = `
                 (GRAMMAR
-                    (RULE <start> (LIST "GRAMMAR" <rules>))
+                    (RULE START grammar)
 
-                    (RULE <rules> (LIST <rule> <rules>))
-                    (RULE <rules> (LIST <rule> ()))
+                    (RULE grammar (LIST "GRAMMAR" elements))
 
-                    (RULE <rule> (LIST "RULE" (LIST ATOMIC (LIST <metaExp> ()))))
+                    (RULE elements (LIST element elements))
+                    (RULE elements (LIST element ()))
 
-                    (RULE <metaExp> (LIST "LIST" (LIST <metaExp> (LIST <metaExp> ()))))
-                    (RULE <metaExp> <metaAtom>)
+                    (RULE element
+                        (LIST "RULE"
+                            (LIST ATOMIC
+                                (LIST metaExp
+                                    ()))))
+
+                    (RULE element
+                        (LIST "COMPUTE"
+                            (LIST (LIST "NAME" (LIST ATOMIC ()))
+                                (LIST grammar
+                                    ()))))
+
+                    (RULE metaExp
+                        (LIST "LIST"
+                            (LIST metaExp
+                                (LIST metaExp
+                                    ()))))
+                                    
+                    (RULE metaExp metaAtom)
                          
-                    (RULE <metaAtom> (LIST "ATOM" (LIST ATOMIC (LIST <metaAtom> ()))))
-                    (RULE <metaAtom> <atomic>)
+                    (RULE metaAtom
+                        (LIST "ATOM"
+                            (LIST ATOMIC
+                                (LIST metaAtom
+                                    ()))))
+                                    
+                    (RULE metaAtom atomic)
 
-                    (RULE <atomic> ATOMIC)
-                    (RULE <atomic> ()))
+                    (RULE atomic (LIST "RUN" (LIST ATOMIC ())))
+                    (RULE atomic ATOMIC)
+                    (RULE atomic ()))
             `
             
             let sSyntax = SExpr.parse (syntax);
@@ -42,19 +65,24 @@ var Parser = (
         }
         
         let makeGrammar = function (sexpr) {
-            let rules = [];
+            let grammar = {rules: [], children: [], parent: null};
             for (let i = 1; i < sexpr.length; i++) {
-                let ruleType = sexpr[i][0];
-                let ruleName = sexpr[i][1];
-                let ruleBody = sexpr[i][2];
-                if (!rules[ruleName]) {
-                    rules[ruleName] = [];
+                if (sexpr[i][0] === 'RULE') {
+                    let ruleName = sexpr[i][1];
+                    let ruleBody = sexpr[i][2];
+                    if (!grammar.rules[ruleName]) {
+                        grammar.rules[ruleName] = [];
+                    }
+                    
+                    grammar.rules[ruleName].push (ruleBody);
                 }
-                
-                rules[ruleName].push ({type: ruleType, pattern: ruleBody});
+                else if (sexpr[i][0] === 'COMPUTE') {
+                    grammar.children[sexpr[i][1][1]] = makeGrammar (sexpr[i][2])
+                    grammar.children[sexpr[i][1][1]].parent = grammar;
+                }
             }
             
-            return rules
+            return grammar;
         }
         
         let parse = function (sexpr, grammar) {
@@ -67,7 +95,7 @@ var Parser = (
         
         let parseLowLevel = function (expr, grammar) {
             grammar = makeGrammar (grammar);
-            let patt = "<start>";
+            let patt = "START";
 
             return match (normalizeSExpr (expr), patt, grammar);
         }
@@ -83,11 +111,11 @@ var Parser = (
                 
                 let [idx, expr, patt, curPath, subAtomic] = stack[stack.length - 1];
                 let atomMatch = false;
-                if (typeof patt === "string" && patt.charAt (0) === '"' && patt.charAt (patt.length - 1) === '"') {
+                if (Array.isArray(expr) && expr[0] === 'ATOM' && typeof patt === "string" && patt.charAt (0) === '"' && patt.charAt (patt.length - 1) === '"') {
                     patt = normalizeAtom (patt.substring(1, patt.length - 1));
                 }
                 
-                if (typeof patt === "string" && grammar[patt]) {
+                if (typeof patt === "string" && grammar.rules[patt]) {
                     if (mode === "back") {
                         if (ok) {
                             continue loop1;
@@ -99,13 +127,23 @@ var Parser = (
                     
                     stack[stack.length - 1][0]++;
                     idx = stack[stack.length - 1][0];
-                    let rule = grammar[patt];
+                    let rule = grammar.rules[patt];
                     if (idx < rule.length) {
-                        stack.push([-1, expr, rule[idx].pattern, curPath, subAtomic]);
+                        stack.push([-1, expr, rule[idx], curPath, subAtomic]);
                         continue loop1;
                     }
                     
                     [mode, ok] = ["back", false];
+                    continue loop1;
+                }
+                else if (Array.isArray (patt) && patt[0] == "RUN") {
+                    let tmpPath;
+                    [tmpPath, ok] = compute (expr, patt, grammar);
+                    if (!subAtomic) {
+                        farPath = [...farPath, ...tmpPath];
+                    }
+                    
+                    [mode, ok] = ["back", ok];
                     continue loop1;
                 }
                 else if (Array.isArray(expr) && Array.isArray(patt)) {
@@ -162,6 +200,20 @@ var Parser = (
             }
             
             return [farPath, ok];
+        }
+
+        let compute = function (expr, patt, grammar) {
+            let parent = grammar;
+            while (parent) {
+                let child = parent.children[patt[1]];
+                if (child) {
+                    return match(expr, "START", child);
+                }
+
+                parent = parent.parent;
+            }
+            
+            throw new Error (`Uknown compute function: ${patt[1]}`);
         }
 
         let compareArr = function (arr1, arr2) {
@@ -221,7 +273,7 @@ var Parser = (
         let normalizeAtom = function (atom) {
             let cdr = [];
             for (let i = atom.length - 1; i >= 0; i--) {
-                cdr = ["ATOM", atom.charAt (i), cdr];
+                cdr = ["ATOM", '"' + atom.charAt (i) + '"', cdr];
             }
             
             return cdr;

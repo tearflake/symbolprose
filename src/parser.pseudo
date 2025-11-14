@@ -4,18 +4,20 @@
 
 // Data structures
 
-Atom        : string                 // atomic expression
+Atom        : String                 // atomic expression
 SExpr       : Atom | [SExpr]             // symbolic expression (list form)
 Path        : [Int]                      // index path inside S-expression
-Grammar     : Map<Atom, [Rule]>          // grammar as collection of rules
-Rule        : {                          // rule
-    patttern: SExpr
+Grammar     : {                          // hierarchical grammar
+    parent: Grammar,
+    children: Map<String, Graph>,
+    rules: Map<Atom, [Rule]>
 }
+Rule        : SExpr                      // rule
 
 // Core Parsing Engine
 
 function parse(expr: SExpr, grammar: Grammar): SExpr | Error
-    patt = "<start>"
+    patt = "START"
     path, ok = match(normalizeSExpr(expr), patt, grammar)
     if ok
         return expr
@@ -34,7 +36,7 @@ function match(expr: SExpr, patt: SExpr, grammar: Grammar): (Path, Bool)
             
         [_, expr, patt, curPath, subAtomic] = stack.top()
         atomMatch = false
-        if patt is Atom enclosed within quotes
+        if expr is array and expr[0] === 'ATOM' and patt is Atom enclosed within quotes
             patt = normalizeAtom (patt.substring(1, patt.length - 1))
 
         if patt is Atom and grammar contains patt
@@ -47,15 +49,23 @@ function match(expr: SExpr, patt: SExpr, grammar: Grammar): (Path, Bool)
             
             stack.top()[0]++
             idx = stack.top()[0]
-            rule = grammar[patt]
+            rule = grammar.rules[patt]
             if idx < rule.length
-                stack.push([-1, expr, rule[idx].pattern, curPath, subAtomic])
+                stack.push([-1, expr, rule[idx], curPath, subAtomic])
                 continue loop1
             
             [mode, ok] = ["back", false]
             continue loop1
 
-        else if Array.isArray(expr) and Array.isArray(patt)
+        else if patt is array and patt[0] == "RUN"
+            [tmpPath, ok] = compute(expr, patt, grammar)
+            if not subAtomic
+                farPath = [...farPath, ...tmpPath]
+            
+            [mode, ok] = ["back", ok]
+            continue loop1
+
+        else if expr is array and patt is array
             if expr.length != patt.length
                 [mode, ok] = ["back", false]
                 continue loop1
@@ -102,6 +112,17 @@ function match(expr: SExpr, patt: SExpr, grammar: Grammar): (Path, Bool)
 
     return [farPath, ok]
 
+function compute (expr: SExpr, patt: SExpr, grammar: Grammar): (Path, Bool)
+    parent = grammar;
+    while parent
+        child = parent.children[patt[1]]
+        if child
+            return match(expr, "START", child)
+
+        parent = parent.parent
+    
+    Error("Unknown compute function: " + patt[1]);
+
 function compareArr(arr1: [], arr2: []): Integer
     for i = 0 to arr1.length - 1
         if i < arr2.length
@@ -134,7 +155,7 @@ function normalizeSExpr(expr: SExpr): SExpr
             car = item.car;
             if car is array
                 stack.push({cdr: cdr})
-                cdr = [];
+                cdr = []
                 for c in car
                     stack.push({car: c})
             
@@ -150,7 +171,7 @@ function normalizeSExpr(expr: SExpr): SExpr
 function normalizeAtom(atom: String): SExpr
     cdr = [];
     for i = atom.length - 1 to 0 step -1
-        cdr = ["ATOM", atom.charAt(i), cdr]
+        cdr = ["ATOM", '"' + atom.charAt(i) + '"', cdr]
     
     return cdr
 

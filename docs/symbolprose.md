@@ -1,7 +1,7 @@
 # symbolprose
 
 > **[about document]**  
-> Introduction to *Symbolprose* symbol processing framework
+> Introduction to *Symbolprose*, a symbol processing framework
 >
 > **[intended audience]**  
 > Advanced programmers
@@ -24,7 +24,7 @@ Symbolprose is a minimalist programming language designed to serve as both a vir
 1. To provide a low-level but structured execution model, allowing efficient compilation from higher-level languages.  
 2. To preserve simplicity in syntax and semantics, lowering the barrier of adoption and making the execution model easy to reason about.  
 
-At its core, Symbolprose embodies the philosophy that computational constructs should be both minimal and compositional. By expressing computation as graphs of nodes and edges with simple instructions, Symbolprose achieves a balance between being close to the machine while still remaining human-readable.  
+At its core, Symbolprose embodies the philosophy that computational constructs should be both minimal and compositional. By expressing computation as graphs of nodes and edges with simple instructions, Symbolprose tries to find a balance between being close to the machine while still remaining human-readable.  
 
 This document specifies the language, its syntax, semantics, and illustrates its use through a few examples.  
 
@@ -70,7 +70,7 @@ Edges are places where actual execution of instructions are done. Each edge `EDG
 
 `ASGN` instructions take two parameters: a variable name and a S-expression value that is going to be assigned to the variable. The variables are created when they are used for the first time. Before assignment of S-expressions to variables, S-expressions are evaluated, substituting contained variables for their values. `ASGN` instructions always succeed and the execution flow continues to the next instruction in the sequence.
 
-`TEST` instructions also take two parameters: expressions which are about to be compared for being equal. Also using the variable substitution, if the parameters are equal to the last consisting atom, the execution flow continues to the next instruction in the sequence. If the parameters are not equal, the branching happens, and the next edge from the same source node is selected for execution. There is no backtracking which cancels the `ASGN` effects from the past instruction sequences. Instead, the control flow is just switched to the beginning of the next edge sequence. When all the edges from the same source node fail to execute, a runtime error is triggered.
+`TEST` instructions also take two parameters: expressions which are about to be compared for being equal. Also using the variable substitution, if the parameters are equal to the last consisting atom, the execution flow continues to the next instruction in the sequence. If the parameters are not equal, the branching happens, and the next edge from the same source node is selected for execution. There is no backtracking which cancels the `ASGN` effects from the past instruction sequences. Instead, the control flow is just switched to the beginning of the next edge sequence. When all the edges from the same source node fail to execute, execution continues to the next parent edge in the sequence. When we reach the `BEGIN` node in this process, after all the execution branches failed, an error is reported.
 
 Finally, when all the instructions from the current `INSTR` sequence succeed, the program control flow continues to the `TARGET` node, trying to execute further edges that branch from the `TARGET` node. We can consider each instruction sequence labeled by the `SOURCE` section name, while the `TARGET` section name serves as a kind of "goto" command mechanism to another instruction sequence. Naturally, it is possible to form loops targeting the past nodes, but we have to carefully set up `TEST` conditions to branch out if we don't want an infinite loop to appear.
 
@@ -305,69 +305,6 @@ Recursive factorial function - on input `5`, output is `120`:
     (EDGE
         (SOURCE BEGIN)
         (INSTR (ASGN RESULT (RUN fact PARAMS)))
-        (TARGET END)))
-```
-
-### Example 8: Fibonacci numbers
-
-Returns n-th fibonacci numbers:
-
-```
-(GRAPH
-    (COMPUTE
-        (NAME fib)
-        (GRAPH
-            
-            // fib(0) -> 0
-            (EDGE
-                (SOURCE BEGIN)
-                (INSTR
-                    (TEST PARAMS "0")
-                    (ASGN RESULT "0"))
-                    
-                (TARGET END))
-
-            // fib(1) -> 1
-            (EDGE
-                (SOURCE BEGIN)
-                (INSTR
-                    (TEST PARAMS "1")
-                    (ASGN RESULT "1"))
-                    
-                (TARGET END))
-
-            // fib(n) -> fib(n - 1) + fib(n - 2)
-            (EDGE
-                (SOURCE BEGIN)
-                (INSTR
-                    (ASGN n1 "0")
-                    (ASGN n2 "1")
-                    (ASGN i "1"))
-                    
-                (TARGET loop))
-
-            (EDGE
-                (SOURCE loop)
-                (INSTR
-                    (TEST i PARAMS)
-                    (ASGN RESULT n3))
-                    
-                (TARGET END))
-
-            (EDGE
-                (SOURCE loop)
-                (INSTR
-                    (ASGN n3 (RUN stdlib ("add" n1 n2)))
-                    (ASGN n1 n2)
-                    (ASGN n2 n3)
-                    (ASGN i (RUN stdlib ("add" i "1"))))
-                    
-                (TARGET loop))))
-
-    // Top-level call
-    (EDGE
-        (SOURCE BEGIN)
-        (INSTR (ASGN RESULT (RUN fib PARAMS)))
         (TARGET END)))
 ```
 

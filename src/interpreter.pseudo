@@ -6,16 +6,16 @@
 
 Atom        : string                  // atoms
 SExpr       : Atom | [SExpr]              // nested symbolic expressions (list form)
-Env         : Map<string, SExpr>          // enviroment variables
+Env         : Map<String, SExpr>          // enviroment variables
 }
 Graph       :
-    edges: Map<string, [Edge]>,
+    edges: Map<String, [Edge]>,
     parent: Graph,
-    children : Map<string, Graph>
+    children : Map<String, Graph>
 }
 Edge        : {
     instructions: [Instr],                // instructions
-    target: string                        // target node
+    target: String                        // target node
 }
 Instr       : {
     name: "ASGN",
@@ -37,13 +37,17 @@ function runLowLevel(graph: Graph, params: SExpr): SExpr
     env["RESULT"] = "NIL"
 
     node = "BEGIN"
+    idx = 0
+    fallback = []
     loop1: while node != "END"
         if node in graph.edges
             edges = graph.edges[node]
-        else
-            Error("node does not exist")
         
-        loop2: for edge in edges
+        else
+            Error("Unknown node: " + node)
+        
+        loop2: for i = idx to edges.length - 1
+            edge = edges[i]
             for instr in edge.instructions
                 else if instr.name = "ASGN"
                     env[instr.var] = evalExpr(instr.value, graph.children, env)
@@ -54,8 +58,16 @@ function runLowLevel(graph: Graph, params: SExpr): SExpr
                     if not deepEqual(a, b)
                         continue loop2
 
+            fallback.push([node, i])            
             node = edge.target
+            idx = 0
             continue loop1
+        
+        if fallback.length > 0
+            [node, idx] = fallback.pop()
+        
+        else
+            Error("No more fallback edges")
 
     return env["RESULT"]
 
@@ -84,20 +96,20 @@ function evalExpr(value: SExpr, graph: Graph, env: Env): SExpr
 function compute (expr: SExpr, graph: Graph, env: Env): SExpr
     parent = graph;
     while parent
-        child = parent.children[value[1]]
-        if (child)
-            return runLowLevel(child, evalExpr(value[2], graph, env))
+        child = parent.children[expr[1]]
+        if child
+            return runLowLevel(child, evalExpr(expr[2], graph, env))
 
         parent = parent.parent
     
-    if value[1] == "stdlib"
-        if value[2][0] in internalFunc
-            return internalFunc[value[2][0]](evalExpr(value[2], graph, env), env)
+    if expr[1] == "stdlib"
+        if expr[2][0] in internalFunc
+            return internalFunc[expr[2][0]](evalExpr(expr[2], graph, env), env)
         
         else
-            Error("Undefined stdlib function" + value[2][0]);
+            Error("Undefined stdlib function" + expr[2][0]);
     
-    Error("Undefined function" + value[1]);
+    Error("Undefined function" + expr[1]);
 
 // Expression matching
 

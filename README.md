@@ -1,4 +1,4 @@
-# symbolprose v0.5.7
+# symbolprose v0.7.0
 
 _**tags:** s-expression, intermediate-representation, imperative-programming_
 

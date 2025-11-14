@@ -22,3 +22,6 @@
     - primitive functions are now in stdlib package
     - constants must be strings
 
+- v0.7.x
+    - aligned with Kleene algebra (fallback nodes go to the `BEGIN`)
+
