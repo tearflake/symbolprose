@@ -23,5 +23,5 @@
     - constants must be strings
 
 - v0.7.x
-    - aligned with Kleene algebra (fallback nodes go to the `BEGIN`)
+    - fallback nodes go all the way to the `BEGIN`
 
